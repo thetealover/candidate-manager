@@ -3761,6 +3761,256 @@ git commit -m "feat(api): add CandidateController with all five endpoints"
 
 ---
 
+### Task 27a: OpenAPI annotations on controller and DTOs
+
+The Micronaut OpenAPI annotation processor is already wired (`api/build.gradle`), and `Application.java` carries `@OpenAPIDefinition`. This task adds the per-endpoint and per-DTO annotations that turn the generated `swagger.yml` from a path-only skeleton into a useful contract document (documented statuses, schemas, examples) — satisfying NFR "API documentation via OpenAPI/Swagger annotations".
+
+**Files (all modify):**
+- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateRegistrationRequest.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/EducationDto.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/PriorExamPassDto.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateResponse.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/PageResponse.java`
+- `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetail.java`
+- `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+
+- [ ] **Step 1: Annotate `EducationDto`**
+
+Add to imports: `import io.swagger.v3.oas.annotations.media.Schema;`. Decorate fields:
+
+```java
+@Serdeable
+@Schema(description = "Educational background of a candidate.")
+public record EducationDto(
+    @NotNull
+    @Schema(description = "Highest degree held by the candidate.", example = "BACHELOR")
+    HighestDegree highestDegree,
+
+    @NotNull @Min(0) @Max(80)
+    @Schema(description = "Years of professional experience.", example = "5", minimum = "0", maximum = "80")
+    Integer yearsExperience) {}
+```
+
+- [ ] **Step 2: Annotate `PriorExamPassDto`**
+
+```java
+@Serdeable
+@Schema(description = "Evidence of a prior exam pass used to qualify for higher program levels.")
+public record PriorExamPassDto(
+    @NotNull
+    @Schema(description = "Program level the candidate previously passed.", example = "LEVEL_I")
+    ProgramLevel level,
+
+    @NotNull @PastOrPresent
+    @Schema(description = "Date the candidate passed the exam.", example = "2024-06-15")
+    LocalDate passedOn) {}
+```
+
+- [ ] **Step 3: Annotate `CandidateRegistrationRequest`**
+
+```java
+@Serdeable
+@Schema(description = "Request payload for registering a new candidate.")
+public record CandidateRegistrationRequest(
+    @NotBlank @Size(max = 80)
+    @Schema(description = "Given name.", example = "Alice", maxLength = 80)
+    String firstName,
+
+    @NotBlank @Size(max = 80)
+    @Schema(description = "Family name.", example = "Anderson", maxLength = 80)
+    String lastName,
+
+    @NotBlank @Email @Size(max = 254)
+    @Schema(description = "Email address; unique across active candidates.", example = "alice@example.com", maxLength = 254)
+    String email,
+
+    @NotNull @Past
+    @Schema(description = "Candidate's date of birth (must be in the past).", example = "1995-01-01")
+    LocalDate dateOfBirth,
+
+    @NotNull @Valid
+    @Schema(description = "Educational background.")
+    EducationDto education,
+
+    @NotNull
+    @Schema(description = "Program level the candidate is registering for.", example = "LEVEL_I")
+    ProgramLevel programLevel,
+
+    @NotNull @Valid
+    @Schema(description = "Prior exam passes (empty list is valid).")
+    List<PriorExamPassDto> priorPasses) {}
+```
+
+- [ ] **Step 4: Annotate `CandidateResponse`**
+
+```java
+@Serdeable
+@Schema(description = "A candidate record.")
+public record CandidateResponse(
+    @Schema(description = "Server-generated candidate id.", example = "8e3b8f2a-...-...")
+    UUID id,
+
+    @Schema(description = "Given name.", example = "Alice") String firstName,
+    @Schema(description = "Family name.", example = "Anderson") String lastName,
+    @Schema(description = "Email address.", example = "alice@example.com") String email,
+    @Schema(description = "Date of birth.", example = "1995-01-01") LocalDate dateOfBirth,
+    EducationDto education,
+    @Schema(description = "Program level.", example = "LEVEL_I") ProgramLevel programLevel,
+    List<PriorExamPassDto> priorPasses,
+
+    @Schema(
+        description = "Current eligibility status.",
+        example = "NOT_VERIFIED",
+        enumAsRef = false)
+    EligibilityStatus eligibilityStatus,
+
+    @Schema(description = "When the candidate was registered (UTC).") Instant registeredAt,
+    @Schema(description = "When the candidate was soft-deleted; null on all returned candidates.")
+    Instant deletedAt) {
+
+  public static CandidateResponse from(final Candidate c) { /* unchanged body */ }
+}
+```
+
+(Keep the existing `from(...)` body; only the annotations are new.)
+
+- [ ] **Step 5: Annotate `PageResponse`**
+
+```java
+@Serdeable
+@Schema(description = "Pagination envelope.")
+public record PageResponse<T>(
+    @Schema(description = "Page content.") List<T> content,
+    @Schema(description = "Current page index (0-based).", example = "0") int page,
+    @Schema(description = "Page size.", example = "20") int size,
+    @Schema(description = "Total number of matching elements.", example = "137") long totalElements,
+    @Schema(description = "Total number of pages.", example = "7") int totalPages) {
+
+  public static PageResponse<CandidateResponse> ofCandidates(final Page<Candidate> page) { /* unchanged */ }
+}
+```
+
+- [ ] **Step 6: Annotate `ProblemDetail`**
+
+Add `@Schema(description = "RFC 7807 Problem Details response.")` to the record itself. No need to annotate every field — Swagger UI surfaces the field names and types automatically; `description` on the type is enough for discoverability.
+
+- [ ] **Step 7: Annotate `CandidateController` methods**
+
+Add to imports:
+
+```java
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import com.thetealover.candidate.api.problem.ProblemDetail;
+```
+
+Decorate the class:
+
+```java
+@Tag(name = "Candidates", description = "Candidate registration and eligibility verification.")
+@Controller("/api/v1/candidates")
+@Validated
+@ExecuteOn(TaskExecutors.BLOCKING)
+public class CandidateController { ... }
+```
+
+Per method:
+
+```java
+@Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
+@Operation(
+    summary = "Register a new candidate",
+    description = "Validates the payload, enforces email uniqueness across active candidates, "
+        + "and stores the candidate in NOT_VERIFIED state.")
+@ApiResponse(
+    responseCode = "201",
+    description = "Candidate created; Location header points at the new resource.",
+    content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+@ApiResponse(
+    responseCode = "400",
+    description = "Validation failure (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(
+    responseCode = "409",
+    description = "Email already registered to an active candidate (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+public HttpResponse<CandidateResponse> create(...) { /* unchanged */ }
+
+@Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
+@Operation(summary = "Get a candidate by id")
+@ApiResponse(
+    responseCode = "200",
+    content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+@ApiResponse(
+    responseCode = "404",
+    description = "Unknown id or soft-deleted candidate.",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+public CandidateResponse byId(
+    @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id) { /* unchanged */ }
+
+@Get(produces = MediaType.APPLICATION_JSON)
+@Operation(summary = "Search active candidates with filtering and pagination")
+@ApiResponse(responseCode = "200", description = "A page of matching candidates.")
+public PageResponse<CandidateResponse> list(
+    @Parameter(description = "Filter by eligibility status.")
+    @QueryValue(defaultValue = "") final String status,
+    @Parameter(description = "Filter by program level.")
+    @QueryValue(defaultValue = "") final String program,
+    @Parameter(description = "Zero-based page index.", example = "0")
+    @QueryValue(defaultValue = "0") final int page,
+    @Parameter(description = "Page size (1..100).", example = "20")
+    @QueryValue(defaultValue = "20") final int size) { /* unchanged */ }
+
+@Put("/{id}/eligibility")
+@Operation(
+    summary = "Trigger asynchronous eligibility verification",
+    description = "Moves the candidate to VERIFICATION_IN_PROGRESS and dispatches the rule "
+        + "evaluation on a virtual-thread executor. Returns 202 immediately.")
+@ApiResponse(responseCode = "202", description = "Verification queued.")
+@ApiResponse(responseCode = "400", description = "Missing X-Actor-Id header (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "404", description = "Unknown id or soft-deleted (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "409", description = "Verification already in progress (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+public HttpResponse<Void> triggerEligibility(
+    @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
+    @Parameter(description = "Actor performing the action.", required = true, example = "user-123")
+    @Header(value = "X-Actor-Id", defaultValue = "") final String actorId) { /* unchanged */ }
+
+@Delete("/{id}")
+@Operation(summary = "Soft-delete a candidate")
+@ApiResponse(responseCode = "204", description = "Soft-deleted.")
+@ApiResponse(responseCode = "400", description = "Missing X-Actor-Id header (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "404", description = "Unknown id (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "409", description = "Already deleted (RFC 7807).",
+    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+public HttpResponse<Void> deleteOne(
+    @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
+    @Parameter(description = "Actor performing the action.", required = true, example = "user-123")
+    @Header(value = "X-Actor-Id", defaultValue = "") final String actorId) { /* unchanged */ }
+```
+
+- [ ] **Step 8: Build and inspect the generated spec**
+
+Run: `./gradlew :api:build -x test`
+Expected: BUILD SUCCESSFUL. The OpenAPI processor writes the spec to `api/build/classes/java/main/META-INF/swagger/candidate-manager-ws-api-0.1.0.yml`. Open it and verify the documented status codes and schemas appear for every operation.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add api/src/main/java
+git commit -m "docs(api): annotate controller and DTOs with OpenAPI/Swagger metadata"
+```
+
+---
+
 ### Task 28: Update `application.yml` with Jackson strict mode + correlation MDC
 
 **Files:**
@@ -4090,6 +4340,160 @@ git commit -m "test(api): add e2e test for async eligibility flow + missing-head
 
 ---
 
+### Task 31a: Dockerfile + `docker compose up` boots the full stack
+
+Submission guideline: *"The service must start successfully with a single 'docker-compose up' command."* Currently `docker-compose.yml` only starts Postgres; this task adds an `app` service that builds and runs the Micronaut application.
+
+**Files:**
+- Create: `api/Dockerfile`
+- Create: `.dockerignore`
+- Modify: `docker-compose.yml`
+
+- [ ] **Step 1: Create `.dockerignore`**
+
+`/.dockerignore`:
+
+```
+.gradle
+.git
+.idea
+**/build
+**/.DS_Store
+**/*.iml
+docs
+infra
+```
+
+- [ ] **Step 2: Create `api/Dockerfile` (multi-stage build)**
+
+```dockerfile
+# syntax=docker/dockerfile:1.7
+
+# --- Stage 1: build the shadow jar ---
+FROM eclipse-temurin:21-jdk-jammy AS build
+WORKDIR /workspace
+
+# Copy build scripts first to leverage Docker layer cache for dependencies.
+COPY gradlew settings.gradle build.gradle gradle.properties ./
+COPY gradle ./gradle
+
+# Warm the Gradle cache (best effort; harmless if it fails on stripped build files).
+RUN ./gradlew --version --no-daemon
+
+# Now copy the modules and build.
+COPY domain         ./domain
+COPY application    ./application
+COPY infrastructure ./infrastructure
+COPY api            ./api
+
+RUN ./gradlew :api:shadowJar -x test --no-daemon
+
+# --- Stage 2: minimal JRE runtime ---
+FROM eclipse-temurin:21-jre-jammy AS runtime
+WORKDIR /app
+
+# Non-root user for the running process.
+RUN useradd -r -u 1001 -g root appuser
+USER 1001
+
+COPY --from=build /workspace/api/build/libs/api-*-all.jar /app/candidate-manager.jar
+
+EXPOSE 8080
+
+# JSON logging is configured in logback.xml; no extra flags needed.
+ENTRYPOINT ["java", "-jar", "/app/candidate-manager.jar"]
+```
+
+The Micronaut application plugin already configures the shadow plugin; `./gradlew :api:shadowJar` produces `api/build/libs/api-0.1.0-SNAPSHOT-all.jar`.
+
+- [ ] **Step 3: Update `docker-compose.yml`**
+
+Replace the file with:
+
+```yaml
+services:
+  candidate-manager-ws-postgresql:
+    container_name: candidate-manager-ws
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=canmanager
+      - POSTGRES_DB=canmanager
+    volumes:
+      - /var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canmanager -d canmanager"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    networks:
+      - candidate-manager
+
+  app:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: candidate-manager-app
+    depends_on:
+      candidate-manager-ws-postgresql:
+        condition: service_healthy
+    environment:
+      MICRONAUT_ENVIRONMENTS: local
+      JDBC_URL: jdbc:postgresql://candidate-manager-ws-postgresql:5432/canmanager?currentSchema=%22canmanager-ws%22
+      JDBC_USER: canmanager
+      JDBC_PASSWORD: password
+    ports:
+      - "8080:8080"
+    networks:
+      - candidate-manager
+
+networks:
+  candidate-manager:
+    driver: bridge
+```
+
+The `app` service:
+- Builds from the multi-stage Dockerfile.
+- Waits for Postgres to be healthy before starting.
+- Activates the `local` Micronaut environment (so `application-local.yml` overrides the JDBC URL to point at the in-network container hostname).
+- Overrides the JDBC env vars explicitly so the local env file's `localhost:5432` doesn't fight us.
+
+Note: `application-local.yml` uses `localhost:5432` for developers running outside a container. The env vars set here override it for the in-container case.
+
+- [ ] **Step 4: Verify the whole stack starts with one command**
+
+```bash
+docker compose down --remove-orphans
+docker compose up --build -d
+docker compose ps
+```
+
+Expected: both services running. Wait ~10s for the app to apply Liquibase and bind to 8080, then:
+
+```bash
+curl -fsS http://localhost:8080/health
+```
+
+Expected: `{"status":"UP"}`.
+
+- [ ] **Step 5: Tear down**
+
+```bash
+docker compose down --remove-orphans
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add api/Dockerfile .dockerignore docker-compose.yml
+git commit -m "build: dockerise the app and add it to docker-compose for one-command startup"
+```
+
+---
+
 ## Phase 7 — CI and tooling (P1)
 
 ### Task 32: GitHub Actions workflow
@@ -4334,6 +4738,8 @@ The domain port stays untouched, so this is a swap, not a refactor.
 **Decision:** Individual migrations are `--liquibase formatted sql` files. Master changelog is `db.changelog-master.yaml` and only includes them. The `002-test-data.sql` changeset is tagged `context:"test-data"` and only runs when the active environment activates that context (i.e. `local`).
 
 **Why:** Readable diffs, lower-noise reviews than XML. Contexts prevent test rows from being applied to `dev` or production even if the file is shipped.
+
+**Naming note:** the brief calls this changeset "seed data"; we renamed it to `002-test-data.sql` because its purpose is local exercise / manual smoke-testing of the search and detail endpoints, not seeding production reference data. Same content, more honest name; the Liquibase `context:"test-data"` tag makes the intent explicit.
 
 ## D10 — Bonus scope (priority order)
 
