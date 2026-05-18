@@ -1,0 +1,26 @@
+# Properties are overridden by the @Property annotations on the test class
+# (where the JDBC URL points at the Testcontainers Postgres).
+micronaut:
+  application:
+    name: candidate-manager-test
+
+datasources:
+  default:
+    driver-class-name: org.postgresql.Driver
+    dialect: POSTGRES
+
+jpa:
+  default:
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: validate
+        jdbc:
+          time_zone: UTC
+
+liquibase:
+  datasources:
+    default:
+      change-log: classpath:db/changelog/db.changelog-master.yaml
+      default-schema-name: public
+      liquibase-schema-name: public

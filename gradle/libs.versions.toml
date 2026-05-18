@@ -14,7 +14,7 @@ logstash-encoder = "8.0"
 junit          = "5.11.3"
 mockito        = "5.14.2"
 assertj        = "3.26.3"
-testcontainers = "1.20.4"
+testcontainers = "1.21.0"
 
 [plugins]
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }

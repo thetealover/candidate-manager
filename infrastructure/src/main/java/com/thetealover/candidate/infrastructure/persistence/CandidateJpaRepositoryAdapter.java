@@ -36,8 +36,18 @@ public class CandidateJpaRepositoryAdapter implements CandidateRepository {
   public Page<Candidate> searchActive(final SearchCriteria criteria, final Pageable pageable) {
     final io.micronaut.data.model.Pageable mp =
         io.micronaut.data.model.Pageable.from(pageable.page(), pageable.size());
-    final io.micronaut.data.model.Page<CandidateJpaEntity> raw =
-        repo.searchActive(criteria.status(), criteria.programLevel(), mp);
+    final boolean hasStatus = criteria.status() != null;
+    final boolean hasProgram = criteria.programLevel() != null;
+    final io.micronaut.data.model.Page<CandidateJpaEntity> raw;
+    if (hasStatus && hasProgram) {
+      raw = repo.searchActiveByStatusAndProgram(criteria.status(), criteria.programLevel(), mp);
+    } else if (hasStatus) {
+      raw = repo.searchActiveByStatus(criteria.status(), mp);
+    } else if (hasProgram) {
+      raw = repo.searchActiveByProgram(criteria.programLevel(), mp);
+    } else {
+      raw = repo.searchActive(mp);
+    }
     final List<Candidate> content =
         raw.getContent().stream().map(CandidateMapper::toDomain).toList();
     return new Page<>(content, pageable.page(), pageable.size(), raw.getTotalSize());
@@ -46,6 +56,8 @@ public class CandidateJpaRepositoryAdapter implements CandidateRepository {
   @Override
   public void save(final Candidate candidate) {
     final CandidateJpaEntity entity = CandidateMapper.toJpa(candidate);
-    repo.save(entity);
+    // update() generates a Hibernate merge() which handles both INSERT (new entity)
+    // and UPDATE (existing entity). save() generates persist() which fails on re-save.
+    repo.update(entity);
   }
 }

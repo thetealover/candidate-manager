@@ -26,13 +26,43 @@ public interface CandidateMicronautRepository extends CrudRepository<CandidateJp
       value =
           "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
               + "where c.deletedAt is null "
-              + "and (:status is null or c.eligibilityStatus = :status) "
-              + "and (:program is null or c.programLevel = :program) "
+              + "order by c.registeredAt desc",
+      countQuery = "select count(c) from CandidateJpaEntity c where c.deletedAt is null")
+  Page<CandidateJpaEntity> searchActive(Pageable pageable);
+
+  @Query(
+      value =
+          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
+              + "where c.deletedAt is null "
+              + "and c.eligibilityStatus = :status "
               + "order by c.registeredAt desc",
       countQuery =
           "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
-              + "and (:status is null or c.eligibilityStatus = :status) "
-              + "and (:program is null or c.programLevel = :program)")
-  Page<CandidateJpaEntity> searchActive(
+              + "and c.eligibilityStatus = :status")
+  Page<CandidateJpaEntity> searchActiveByStatus(EligibilityStatus status, Pageable pageable);
+
+  @Query(
+      value =
+          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
+              + "where c.deletedAt is null "
+              + "and c.programLevel = :program "
+              + "order by c.registeredAt desc",
+      countQuery =
+          "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
+              + "and c.programLevel = :program")
+  Page<CandidateJpaEntity> searchActiveByProgram(ProgramLevel program, Pageable pageable);
+
+  @Query(
+      value =
+          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
+              + "where c.deletedAt is null "
+              + "and c.eligibilityStatus = :status "
+              + "and c.programLevel = :program "
+              + "order by c.registeredAt desc",
+      countQuery =
+          "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
+              + "and c.eligibilityStatus = :status "
+              + "and c.programLevel = :program")
+  Page<CandidateJpaEntity> searchActiveByStatusAndProgram(
       EligibilityStatus status, ProgramLevel program, Pageable pageable);
 }
