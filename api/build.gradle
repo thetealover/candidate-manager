@@ -29,6 +29,12 @@ micronaut {
     }
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add(
+            "-Amicronaut.openapi.views.spec=swagger-ui.enabled=true,redoc.enabled=true,rapidoc.enabled=true"
+    )
+}
+
 // Pass DOCKER_HOST to the test JVM so Testcontainers can find the Docker daemon.
 // Mirrors the same block in infrastructure/build.gradle.
 tasks.withType(Test).configureEach {
