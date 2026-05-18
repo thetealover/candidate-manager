@@ -158,6 +158,18 @@ Every DTO field carries explicit constraints. The Micronaut validator runs them;
 
 Domain value objects perform a second layer of validation on construction (e.g. `Email` regex, `DateOfBirth` plausibility bounds). The Bean Validation layer exists to give friendly error messages before any domain object is built; the domain validators exist so domain code is correct regardless of how it's reached.
 
+## Unknown fields in request bodies
+
+Jackson is configured strict — unknown JSON properties **reject the request**:
+
+```yaml
+jackson:
+  deserialization:
+    fail-on-unknown-properties: true
+```
+
+Rationale: catches client typos (e.g. `"emails"` instead of `"email"`) instead of silently dropping them and surfacing a misleading downstream error. The API is versioned via `/api/v1`, so future schema additions are handled by a new version, not by lenient deserialization. The resulting `UnrecognizedPropertyException` is mapped to the standard `ProblemDetail` shape with `type=…/validation-failure` and an `errors[]` entry naming the offending field.
+
 ## Headers
 
 | Header | Direction | Behavior |
