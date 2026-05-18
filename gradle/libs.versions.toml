@@ -15,6 +15,7 @@ junit          = "5.11.3"
 mockito        = "5.14.2"
 assertj        = "3.26.3"
 testcontainers = "1.21.0"
+awaitility     = "4.2.2"
 
 [plugins]
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }
@@ -64,6 +65,7 @@ assertj-core                 = { module = "org.assertj:assertj-core",           
 micronaut-test-junit5        = { module = "io.micronaut.test:micronaut-test-junit5" }
 testcontainers-postgresql    = { module = "org.testcontainers:postgresql",             version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter",          version.ref = "testcontainers" }
+awaitility                   = { module = "org.awaitility:awaitility",                 version.ref = "awaitility" }
 
 [bundles]
 # Common unit-test toolkit (JUnit 5 + Mockito + AssertJ)

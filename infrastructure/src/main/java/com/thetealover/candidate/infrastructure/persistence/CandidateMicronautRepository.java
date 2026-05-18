@@ -8,6 +8,7 @@ import io.micronaut.data.annotation.Repository;
 import io.micronaut.data.model.Page;
 import io.micronaut.data.model.Pageable;
 import io.micronaut.data.repository.CrudRepository;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -21,6 +22,19 @@ public interface CandidateMicronautRepository extends CrudRepository<CandidateJp
 
   @Query("select count(c) from CandidateJpaEntity c where c.email = :email and c.deletedAt is null")
   long countActiveByEmail(String email);
+
+  /**
+   * Updates only the mutable scalar columns (eligibilityStatus, deletedAt) for an existing row.
+   * Returns the number of rows affected (0 if no row exists for the given id). Used by the adapter
+   * to avoid the Hibernate "shared references to a collection" error that occurs when a new JPA
+   * entity with a plain ArrayList is merged into a session that already holds the entity's
+   * PersistentList.
+   */
+  @Query(
+      "update CandidateJpaEntity c set c.eligibilityStatus = :status, c.deletedAt = :deletedAt"
+          + " where c.id = :id")
+  int updateMutableFields(
+      UUID id, EligibilityStatus status, @jakarta.annotation.Nullable Instant deletedAt);
 
   @Query(
       value =

@@ -51,10 +51,15 @@ class EvaluateEligibilityHandlerTest {
     c.startVerification();
     when(repository.findActiveById(any())).thenReturn(Optional.of(c));
 
-    final EvaluateEligibilityHandler handler =
-        new EvaluateEligibilityHandler(repository, new EligibilityRules(), publisher, CLOCK);
+    // The handler delegates to the inner EligibilityEvaluatorService; test that service directly
+    // (the handler's on() method just dispatches to it asynchronously — the async aspect is not
+    // exercised in this unit test, only the business logic inside the evaluator).
+    final EvaluateEligibilityHandler.EligibilityEvaluatorService evaluator =
+        new EvaluateEligibilityHandler.EligibilityEvaluatorService(
+            repository, new EligibilityRules(), publisher, CLOCK);
     final UUID correlationId = UUID.randomUUID();
-    handler.on(new EligibilityRequestedEvent(c.id(), correlationId, "actor-1", CLOCK.instant()));
+    evaluator.evaluate(
+        new EligibilityRequestedEvent(c.id(), correlationId, "actor-1", CLOCK.instant()));
 
     assertThat(c.eligibilityStatus()).isEqualTo(EligibilityStatus.ELIGIBLE);
     verify(repository).save(c);
