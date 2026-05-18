@@ -17,9 +17,11 @@ micronaut {
 dependencies {
     api project(':domain')
 
+    api libs.micronaut.context
     api libs.micronaut.inject
     api libs.micronaut.data.tx
     api libs.jakarta.transaction.api
+    api libs.slf4j.api
 
     annotationProcessor libs.micronaut.inject.java
 
