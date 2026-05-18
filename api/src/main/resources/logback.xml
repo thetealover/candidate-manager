@@ -2,16 +2,13 @@
 <configuration>
 
     <!--
-      Structured JSON logging. MDC keys (requestId, actorId, candidateId) are
-      promoted to top-level fields so they're easy to query in log aggregators.
+      Default Logback configuration. Used by the 'local' and 'test' environments
+      for a readable terminal output. The 'dev' environment loads logback-dev.xml
+      via `logger.config: classpath:logback-dev.xml` in application-dev.yml.
     -->
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
-            <includeMdcKeyName>requestId</includeMdcKeyName>
-            <includeMdcKeyName>actorId</includeMdcKeyName>
-            <includeMdcKeyName>candidateId</includeMdcKeyName>
-            <customFields>{"service":"candidate-manager"}</customFields>
-            <timeZone>UTC</timeZone>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} [correlationId=%X{correlationId:-} actorId=%X{actorId:-} candidateId=%X{candidateId:-}] - %msg%n</pattern>
         </encoder>
     </appender>
 

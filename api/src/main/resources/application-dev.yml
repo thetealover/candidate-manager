@@ -1,0 +1,17 @@
+datasources:
+  default:
+    url:      ${JDBC_URL}
+    username: ${JDBC_USER}
+    password: ${JDBC_PASSWORD}
+
+# Switch to JSON-formatted logging in the deployed 'dev' environment.
+# The 'local' and 'test' environments stay on the readable plain layout.
+logger:
+  config: classpath:logback-dev.xml
+  levels:
+    com.thetealover: INFO
+    org.hibernate.SQL: WARN
+
+endpoints:
+  env:
+    enabled: false

@@ -70,3 +70,5 @@ jackson:
   serialization-inclusion: NON_NULL
   serialization:
     write-dates-as-timestamps: false
+  deserialization:
+    fail-on-unknown-properties: true

@@ -1,0 +1,19 @@
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:5432/canmanager?currentSchema=%22canmanager-ws%22
+    username: canmanager
+    password: password
+
+liquibase:
+  datasources:
+    default:
+      contexts: test-data
+
+logger:
+  levels:
+    com.thetealover: DEBUG
+    org.hibernate.SQL: DEBUG
+
+endpoints:
+  env:
+    enabled: true
