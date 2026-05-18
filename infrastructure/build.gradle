@@ -13,6 +13,14 @@ micronaut {
     }
 }
 
+// Suppress classfile-level annotation warnings emitted when the compiler reads
+// micronaut-data-model's compiled classes that reference Jackson annotations not
+// on the annotation-processor classpath. These are third-party artefacts; the
+// warning is harmless but -Werror (inherited from the root build) would fail us.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-Xlint:-classfile'
+}
+
 dependencies {
     api project(':domain')
     api project(':application')
