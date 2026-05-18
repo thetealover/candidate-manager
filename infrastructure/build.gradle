@@ -21,6 +21,45 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << '-Xlint:-classfile'
 }
 
+// Pass DOCKER_HOST to the test JVM so Testcontainers can find the Docker daemon.
+// On macOS with Docker Desktop the socket lives in ~/.docker/run/docker.sock;
+// fall back to /var/run/docker.sock (the standard symlink) when not explicitly set.
+tasks.withType(Test).configureEach {
+    // Propagate Docker socket to the forked test JVM so Testcontainers can find it.
+    // Docker Desktop on macOS exposes two sockets:
+    //   * ~/.docker/run/docker.sock  — CLI proxy (returns 400 to Testcontainers pings)
+    //   * ~/Library/Containers/com.docker.docker/Data/docker.raw.sock — real engine socket
+    // We prefer the real socket and fall back to DOCKER_HOST if set.
+    def userHome = System.getProperty('user.home')
+    def rawSocket = new File(userHome, 'Library/Containers/com.docker.docker/Data/docker.raw.sock')
+    def desktopSocket = new File(userHome, '.docker/run/docker.sock')
+    def dockerHostEnv = System.getenv('DOCKER_HOST')
+    if (dockerHostEnv) {
+        environment 'DOCKER_HOST', dockerHostEnv
+    } else if (rawSocket.exists()) {
+        def socketUrl = "unix://${rawSocket.absolutePath}"
+        environment 'DOCKER_HOST', socketUrl
+    } else if (desktopSocket.exists()) {
+        def socketUrl = "unix://${desktopSocket.absolutePath}"
+        environment 'DOCKER_HOST', socketUrl
+    }
+    // docker-java (bundled in Testcontainers) reads the API version from the
+    // DOCKER_API_VERSION env var or the 'api.version' system property.
+    // Docker Desktop 29.x requires minimum API 1.40; docker-java defaults to 1.32.
+    // Point to the proxy socket which handles version negotiation.
+    environment 'DOCKER_API_VERSION', '1.45'
+    systemProperty 'api.version', '1.45'
+    // Disable Ryuk (the Testcontainers cleanup daemon) to avoid issues with
+    // Docker socket mounting on macOS Docker Desktop.
+    environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
+    testLogging.showStandardStreams = true
+    // Forward ryuk disable flag for CI environments.
+    def ryukDisabled = System.getenv('TESTCONTAINERS_RYUK_DISABLED')
+    if (ryukDisabled) {
+        environment 'TESTCONTAINERS_RYUK_DISABLED', ryukDisabled
+    }
+}
+
 dependencies {
     api project(':domain')
     api project(':application')
@@ -44,4 +83,5 @@ dependencies {
     testImplementation libs.micronaut.test.junit5
     testImplementation libs.bundles.testcontainers
     testRuntimeOnly    libs.junit.platform.launcher
+    testRuntimeOnly    libs.logback.classic
 }
