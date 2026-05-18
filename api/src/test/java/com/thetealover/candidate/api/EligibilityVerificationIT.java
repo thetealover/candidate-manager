@@ -51,7 +51,7 @@ class EligibilityVerificationIT {
         Map.of(
             "firstName", "Eli",
             "lastName", "Async",
-            "email", "eli+" + UUID.randomUUID() + "@example.com",
+            "email", "eli+%s@example.com".formatted(UUID.randomUUID()),
             "dateOfBirth", "1990-01-01",
             "education", Map.of("highestDegree", "BACHELOR", "yearsExperience", 0),
             "programLevel", "LEVEL_I",
@@ -67,7 +67,8 @@ class EligibilityVerificationIT {
         client
             .toBlocking()
             .exchange(
-                HttpRequest.PUT(location + "/eligibility", "").header("X-Actor-Id", "qa-bot"));
+                HttpRequest.PUT("%s/eligibility".formatted(location), "")
+                    .header("X-Actor-Id", "qa-bot"));
     assertThat(accepted.getStatus().getCode()).isEqualTo(HttpStatus.ACCEPTED.getCode());
 
     await()
@@ -92,7 +93,7 @@ class EligibilityVerificationIT {
         Map.of(
             "firstName", "Missing",
             "lastName", "Header",
-            "email", "mh+" + UUID.randomUUID() + "@example.com",
+            "email", "mh+%s@example.com".formatted(UUID.randomUUID()),
             "dateOfBirth", "1990-01-01",
             "education", Map.of("highestDegree", "BACHELOR", "yearsExperience", 0),
             "programLevel", "LEVEL_I",
@@ -106,7 +107,10 @@ class EligibilityVerificationIT {
     final var ex =
         org.junit.jupiter.api.Assertions.assertThrows(
             io.micronaut.http.client.exceptions.HttpClientResponseException.class,
-            () -> client.toBlocking().exchange(HttpRequest.PUT(location + "/eligibility", "")));
+            () ->
+                client
+                    .toBlocking()
+                    .exchange(HttpRequest.PUT("%s/eligibility".formatted(location), "")));
     assertThat(ex.getStatus().getCode()).isEqualTo(HttpStatus.BAD_REQUEST.getCode());
   }
 }

@@ -110,7 +110,7 @@ public final class Candidate {
     requireActive();
     if (eligibilityStatus != EligibilityStatus.VERIFICATION_IN_PROGRESS) {
       throw new IllegalStateException(
-          "applyDecision requires VERIFICATION_IN_PROGRESS, was " + eligibilityStatus);
+          "applyDecision requires VERIFICATION_IN_PROGRESS, was %s".formatted(eligibilityStatus));
     }
     this.eligibilityStatus = toStatus(outcome);
   }

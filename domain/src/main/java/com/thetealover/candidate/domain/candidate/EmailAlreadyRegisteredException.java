@@ -5,7 +5,7 @@ public final class EmailAlreadyRegisteredException extends RuntimeException {
   private final Email email;
 
   public EmailAlreadyRegisteredException(final Email email) {
-    super("email already registered: " + email.value());
+    super("email already registered: %s".formatted(email.value()));
     this.email = email;
   }
 

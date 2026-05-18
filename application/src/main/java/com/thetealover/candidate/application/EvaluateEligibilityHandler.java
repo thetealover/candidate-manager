@@ -76,7 +76,8 @@ public class EvaluateEligibilityHandler {
                 .orElseThrow(
                     () ->
                         new IllegalStateException(
-                            "candidate vanished during async evaluation: " + event.candidateId()));
+                            "candidate vanished during async evaluation: %s"
+                                .formatted(event.candidateId())));
 
         RuleEvaluation result;
         try {
@@ -85,7 +86,7 @@ public class EvaluateEligibilityHandler {
           LOG.error("eligibility evaluation threw; recording FAILED", ex);
           result =
               new RuleEvaluation(
-                  EligibilityOutcome.FAILED, "Evaluation failed: " + ex.getMessage());
+                  EligibilityOutcome.FAILED, "Evaluation failed: %s".formatted(ex.getMessage()));
         }
 
         c.applyDecision(result.outcome());

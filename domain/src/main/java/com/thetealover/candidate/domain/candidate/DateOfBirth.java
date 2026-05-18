@@ -15,7 +15,8 @@ public record DateOfBirth(LocalDate value) {
     }
     if (value.isBefore(today.minusYears(MAX_PLAUSIBLE_AGE_YEARS))) {
       throw new IllegalArgumentException(
-          "date of birth implausibly old (more than " + MAX_PLAUSIBLE_AGE_YEARS + " years ago)");
+          "date of birth implausibly old (more than %d years ago)"
+              .formatted(MAX_PLAUSIBLE_AGE_YEARS));
     }
   }
 }
