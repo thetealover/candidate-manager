@@ -1,0 +1,87 @@
+plugins {
+    alias(libs.plugins.spotless) apply false
+}
+
+allprojects {
+    group = 'com.thetealover'
+    version = '0.1.0-SNAPSHOT'
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'jacoco'
+    apply plugin: rootProject.libs.plugins.spotless.get().pluginId
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        // -Xlint:-processing silences "No processor claimed any of these annotations"
+        // warnings emitted when one of several APs (e.g. Micronaut inject) doesn't
+        // claim an annotation that another AP (e.g. OpenAPI) actually consumes.
+        options.compilerArgs.addAll(['-parameters', '-Xlint:all', '-Xlint:-processing', '-Werror'])
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+            showStandardStreams = false
+        }
+        finalizedBy jacocoTestReport
+    }
+
+    jacoco {
+        toolVersion = '0.8.12'
+    }
+
+    tasks.named('jacocoTestReport') {
+        dependsOn tasks.named('test')
+        reports {
+            xml.required = true
+            html.required = true
+        }
+    }
+
+    spotless {
+        java {
+            target 'src/**/*.java'
+            googleJavaFormat()
+            removeUnusedImports()
+            trimTrailingWhitespace()
+            endWithNewline()
+        }
+    }
+
+    tasks.named('check').configure {
+        dependsOn tasks.named('spotlessCheck')
+    }
+}
+
+// Enforce 80% line coverage on the domain module.
+project(':domain') {
+    tasks.named('jacocoTestReport') {
+        // run report before verification
+    }
+
+    tasks.register('jacocoCoverageVerification', JacocoCoverageVerification) {
+        dependsOn tasks.named('test')
+        violationRules {
+            rule {
+                element = 'BUNDLE'
+                limit {
+                    counter = 'LINE'
+                    minimum = 0.80
+                }
+            }
+        }
+    }
+
+    tasks.named('check').configure {
+        dependsOn tasks.named('jacocoCoverageVerification')
+    }
+}

@@ -1,0 +1,39 @@
+// Adapters: JPA entities & repositories, Liquibase, event-publisher impl, Hikari pool.
+// Implements domain ports; depends on `domain` and `application` (for shared types).
+
+plugins {
+    alias(libs.plugins.micronaut.library)
+}
+
+micronaut {
+    version = libs.versions.micronaut.get()
+    processing {
+        incremental = true
+        annotations 'com.thetealover.candidate.*'
+    }
+}
+
+dependencies {
+    api project(':domain')
+    api project(':application')
+
+    // Persistence
+    api libs.micronaut.data.hibernate.jpa
+    api libs.micronaut.jdbc.hikari
+    api libs.jakarta.persistence.api
+
+    // Migrations
+    api libs.micronaut.liquibase
+
+    // Postgres driver — runtime only at this layer
+    runtimeOnly libs.postgresql
+
+    annotationProcessor libs.micronaut.inject.java
+    annotationProcessor libs.micronaut.data.processor
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.bundles.unit.test
+    testImplementation libs.micronaut.test.junit5
+    testImplementation libs.bundles.testcontainers
+    testRuntimeOnly    libs.junit.platform.launcher
+}

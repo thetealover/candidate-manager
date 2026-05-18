@@ -1,0 +1,25 @@
+services:
+  candidate-manager-ws-postgresql:
+    container_name: candidate-manager-ws
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=canmanager
+      - POSTGRES_DB=canmanager
+    # Anonymous volume: data survives `restart` but is wiped by `docker compose down`.
+    # Mount the actual Postgres data dir (the default in the official image), not the
+    # parent /var/lib/postgresql, otherwise the cluster init writes outside the mount.
+    # Init scripts under /docker-entrypoint-initdb.d run once on a fresh data dir;
+    # combined with the anonymous volume above, this means schema setup runs every
+    # `down && up` cycle.
+    volumes:
+      - /var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    networks:
+      - candidate-manager
+
+networks:
+  candidate-manager:
+    driver: bridge

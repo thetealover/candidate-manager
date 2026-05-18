@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+      Structured JSON logging. MDC keys (requestId, actorId, candidateId) are
+      promoted to top-level fields so they're easy to query in log aggregators.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <includeMdcKeyName>actorId</includeMdcKeyName>
+            <includeMdcKeyName>candidateId</includeMdcKeyName>
+            <customFields>{"service":"candidate-manager"}</customFields>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.thetealover" level="DEBUG"/>
+    <logger name="io.micronaut" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="INFO"/>
+    <logger name="liquibase" level="INFO"/>
+</configuration>

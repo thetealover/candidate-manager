@@ -1,0 +1,29 @@
+// Use-case orchestration. Depends on `domain` only.
+// Applies the Micronaut library plugin so @Singleton/@Transactional are processed
+// at compile time (no runtime reflection).
+
+plugins {
+    alias(libs.plugins.micronaut.library)
+}
+
+micronaut {
+    version = libs.versions.micronaut.get()
+    processing {
+        incremental = true
+        annotations 'com.thetealover.candidate.*'
+    }
+}
+
+dependencies {
+    api project(':domain')
+
+    api libs.micronaut.inject
+    api libs.micronaut.data.tx
+    api libs.jakarta.transaction.api
+
+    annotationProcessor libs.micronaut.inject.java
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.bundles.unit.test
+    testRuntimeOnly    libs.junit.platform.launcher
+}
