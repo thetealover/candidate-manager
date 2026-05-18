@@ -1,0 +1,71 @@
+[versions]
+# Micronaut
+micronaut       = "4.7.0"
+micronautPlugin = "4.5.4"
+
+# Build plugins
+spotless = "7.0.2"
+
+# Logging
+slf4j            = "2.0.16"
+logstash-encoder = "8.0"
+
+# Test
+junit          = "5.11.3"
+mockito        = "5.14.2"
+assertj        = "3.26.3"
+testcontainers = "1.20.4"
+
+[plugins]
+micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }
+micronaut-library     = { id = "io.micronaut.library",     version.ref = "micronautPlugin" }
+micronaut-aot         = { id = "io.micronaut.aot",         version.ref = "micronautPlugin" }
+spotless              = { id = "com.diffplug.spotless",    version.ref = "spotless" }
+
+[libraries]
+# --- Logging -----------------------------------------------------------------
+slf4j-api                = { module = "org.slf4j:slf4j-api",                           version.ref = "slf4j" }
+logback-classic          = { module = "ch.qos.logback:logback-classic" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-encoder" }
+
+# --- Micronaut core (versions pinned by Micronaut platform BOM) --------------
+micronaut-inject               = { module = "io.micronaut:micronaut-inject" }
+micronaut-inject-java          = { module = "io.micronaut:micronaut-inject-java" }
+micronaut-http-server-netty    = { module = "io.micronaut:micronaut-http-server-netty" }
+micronaut-http-client          = { module = "io.micronaut:micronaut-http-client" }
+micronaut-management           = { module = "io.micronaut:micronaut-management" }
+micronaut-serde-jackson        = { module = "io.micronaut.serde:micronaut-serde-jackson" }
+micronaut-validation           = { module = "io.micronaut.validation:micronaut-validation" }
+micronaut-validation-processor = { module = "io.micronaut.validation:micronaut-validation-processor" }
+micronaut-problem-json         = { module = "io.micronaut.problem:micronaut-problem-json" }
+
+# --- Persistence -------------------------------------------------------------
+micronaut-data-tx            = { module = "io.micronaut.data:micronaut-data-tx" }
+micronaut-data-hibernate-jpa = { module = "io.micronaut.data:micronaut-data-hibernate-jpa" }
+micronaut-data-processor     = { module = "io.micronaut.data:micronaut-data-processor" }
+micronaut-jdbc-hikari        = { module = "io.micronaut.sql:micronaut-jdbc-hikari" }
+micronaut-liquibase          = { module = "io.micronaut.liquibase:micronaut-liquibase" }
+jakarta-persistence-api      = { module = "jakarta.persistence:jakarta.persistence-api" }
+jakarta-transaction-api      = { module = "jakarta.transaction:jakarta.transaction-api" }
+postgresql                   = { module = "org.postgresql:postgresql" }
+
+# --- OpenAPI -----------------------------------------------------------------
+micronaut-openapi   = { module = "io.micronaut.openapi:micronaut-openapi" }
+swagger-annotations = { module = "io.swagger.core.v3:swagger-annotations" }
+
+# --- Test --------------------------------------------------------------------
+junit-bom                    = { module = "org.junit:junit-bom",                       version.ref = "junit" }
+junit-jupiter                = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher      = { module = "org.junit.platform:junit-platform-launcher" }
+mockito-core                 = { module = "org.mockito:mockito-core",                  version.ref = "mockito" }
+mockito-junit-jupiter        = { module = "org.mockito:mockito-junit-jupiter",         version.ref = "mockito" }
+assertj-core                 = { module = "org.assertj:assertj-core",                  version.ref = "assertj" }
+micronaut-test-junit5        = { module = "io.micronaut.test:micronaut-test-junit5" }
+testcontainers-postgresql    = { module = "org.testcontainers:postgresql",             version.ref = "testcontainers" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter",          version.ref = "testcontainers" }
+
+[bundles]
+# Common unit-test toolkit (JUnit 5 + Mockito + AssertJ)
+unit-test = ["junit-jupiter", "mockito-core", "mockito-junit-jupiter", "assertj-core"]
+# Testcontainers (PostgreSQL + JUnit 5 lifecycle)
+testcontainers = ["testcontainers-postgresql", "testcontainers-junit-jupiter"]

@@ -1,0 +1,66 @@
+// REST adapter + composition root. Source code depends on `application`;
+// `infrastructure` is wired in at runtime so Micronaut DI can find the adapter beans.
+
+plugins {
+    alias(libs.plugins.micronaut.application)
+    alias(libs.plugins.micronaut.aot)
+}
+
+application {
+    mainClass = 'com.thetealover.candidate.api.Application'
+}
+
+micronaut {
+    version = libs.versions.micronaut.get()
+    runtime = 'netty'
+    testRuntime = 'junit_5'
+    processing {
+        incremental = true
+        annotations 'com.thetealover.candidate.*'
+    }
+    aot {
+        optimizeServiceLoading = true
+        convertYamlToJava = true
+        precomputeOperations = true
+        cacheEnvironment = true
+        optimizeClassLoading = true
+        deduceEnvironment = true
+        optimizeNetty = true
+    }
+}
+
+dependencies {
+    implementation project(':application')
+    runtimeOnly    project(':infrastructure')
+
+    // HTTP + JSON
+    implementation libs.micronaut.http.server.netty
+    implementation libs.micronaut.serde.jackson
+
+    // Validation (jakarta) + RFC 7807 Problem Details
+    implementation libs.micronaut.validation
+    implementation libs.micronaut.problem.json
+
+    // Management endpoints (health/liveness/readiness)
+    implementation libs.micronaut.management
+
+    // OpenAPI / Swagger — spec generated at compile time
+    annotationProcessor libs.micronaut.openapi
+    implementation      libs.swagger.annotations
+
+    // Validation + DI processors
+    annotationProcessor libs.micronaut.inject.java
+    annotationProcessor libs.micronaut.validation.processor
+
+    // Logging — JSON layout for structured logs
+    runtimeOnly libs.logback.classic
+    runtimeOnly libs.logstash.logback.encoder
+
+    // Test
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.bundles.unit.test
+    testImplementation libs.micronaut.test.junit5
+    testImplementation libs.micronaut.http.client
+    testImplementation libs.bundles.testcontainers
+    testRuntimeOnly    libs.junit.platform.launcher
+}
