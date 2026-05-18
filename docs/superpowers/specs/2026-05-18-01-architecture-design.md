@@ -99,13 +99,15 @@ Three Micronaut environments (Micronaut's equivalent of Spring profiles), driven
 
 - JDBC pointing at `localhost:5432`.
 - `com.thetealover` logger at `DEBUG`, root at `INFO`.
+- **Plain-text console logging** (inherits the default `logback.xml`).
 - Liquibase contexts: `test-data` (so the seed/test-data changeset is applied).
 - `endpoints.env.enabled: true` (fine for local).
 
 ### `application-dev.yml`
 
 - JDBC URL/user/password sourced from env vars (`JDBC_URL`, `JDBC_USER`, `JDBC_PASSWORD`). Actual values are injected by the deployment from AWS Secrets Manager via a Kubernetes Secret (planned for the P2 Terraform).
-- Root logger at `INFO`, JSON encoder only.
+- Root logger at `INFO`.
+- **JSON logging:** `logger.config: classpath:logback-dev.xml` selects the LogstashEncoder variant. MDC keys are promoted to top-level JSON fields.
 - Liquibase contexts: unset (test-data changeset does **not** run).
 - `endpoints.env.enabled: false` (don't expose env dump).
 - Health endpoint details remain visible to `ANONYMOUS` so the EKS readiness/liveness probes can read them.
@@ -148,7 +150,7 @@ In-memory event delivery means a JVM crash between the `IN_PROGRESS` save and th
 
 ## Cross-cutting concerns
 
-- **Logging.** SLF4J + Logback, JSON encoder (`net.logstash.logback:logstash-logback-encoder`). MDC keys: `correlationId`, `actorId`. Stack traces flattened to a single field. No body logging on registration (PII).
+- **Logging.** SLF4J + Logback. The `dev` environment uses the JSON encoder (`net.logstash.logback:logstash-logback-encoder`) for log-aggregator ingestion; `local` and `test` use a plain pattern layout for readable terminal output. MDC keys (`correlationId`, `actorId`, `candidateId`) are surfaced by both layouts — promoted to JSON top-level fields in `dev`, inlined in the pattern in `local`/`test`. The variant is selected via Micronaut's `logger.config: classpath:logback-dev.xml` in `application-dev.yml`. Stack traces flattened to a single field in JSON. No body logging on candidate endpoints (PII).
 - **Correlation id.** Server filter reads `X-Correlation-Id`; generates a UUID v4 if absent. Echoed in the response header. Placed in MDC; propagated to the async listener via Micronaut's event publishing (the event carries it, and the listener restores MDC at entry).
 - **Actor id.** Server filter reads `X-Actor-Id`. Required on `PUT /eligibility` and `DELETE`; defaulted to `system` on other endpoints (where it isn't audited).
 - **Validation.** Jakarta Bean Validation on every DTO field. `@Valid` cascades into nested objects. Constraint violations land in `ConstraintExceptionHandler` and become RFC 7807 responses.
