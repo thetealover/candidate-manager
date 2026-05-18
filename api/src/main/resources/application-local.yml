@@ -1,8 +1,10 @@
 datasources:
   default:
-    url: jdbc:postgresql://localhost:5432/canmanager?currentSchema=%22canmanager-ws%22
-    username: canmanager
-    password: password
+    # Allow JDBC_URL to override for in-container deployments (e.g. docker compose);
+    # falls back to localhost for developers running the service outside a container.
+    url: ${JDBC_URL:`jdbc:postgresql://localhost:5432/canmanager?currentSchema=%22canmanager-ws%22`}
+    username: ${JDBC_USER:canmanager}
+    password: ${JDBC_PASSWORD:password}
 
 liquibase:
   datasources:
