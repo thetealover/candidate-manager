@@ -5,11 +5,11 @@ micronaut:
     port: ${SERVER_PORT:8080}
     # Hand requests off from Netty event-loops to virtual threads.
     thread-selection: AUTO
-  # Make the BLOCKING executor virtual-thread-backed so @ExecuteOn(TaskExecutors.BLOCKING)
-  # controller methods scale without consuming platform threads (Java 21 virtual threads).
+  # Blocking executor used by @ExecuteOn(TaskExecutors.BLOCKING) controller methods.
+  # thread-selection: AUTO (above) already routes server I/O through virtual threads.
   executors:
     blocking:
-      type: virtual
+      type: CACHED
   router:
     static-resources:
       swagger:
@@ -48,7 +48,7 @@ liquibase:
   enabled: true
   datasources:
     default:
-      change-log: classpath:db/changelog/db.changelog-master.xml
+      change-log: classpath:db/changelog/db.changelog-master.yaml
       # Apply migrations into the app schema; keep the bookkeeping tables there too.
       default-schema-name: canmanager-ws
       liquibase-schema-name: canmanager-ws

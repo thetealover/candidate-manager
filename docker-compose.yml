@@ -8,15 +8,32 @@ services:
       - POSTGRES_PASSWORD=password
       - POSTGRES_USER=canmanager
       - POSTGRES_DB=canmanager
-    # Anonymous volume: data survives `restart` but is wiped by `docker compose down`.
-    # Mount the actual Postgres data dir (the default in the official image), not the
-    # parent /var/lib/postgresql, otherwise the cluster init writes outside the mount.
-    # Init scripts under /docker-entrypoint-initdb.d run once on a fresh data dir;
-    # combined with the anonymous volume above, this means schema setup runs every
-    # `down && up` cycle.
     volumes:
       - /var/lib/postgresql/data
       - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canmanager -d canmanager"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    networks:
+      - candidate-manager
+
+  app:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: candidate-manager-app
+    depends_on:
+      candidate-manager-ws-postgresql:
+        condition: service_healthy
+    environment:
+      MICRONAUT_ENVIRONMENTS: local
+      JDBC_URL: jdbc:postgresql://candidate-manager-ws-postgresql:5432/canmanager?currentSchema=%22canmanager-ws%22
+      JDBC_USER: canmanager
+      JDBC_PASSWORD: password
+    ports:
+      - "8080:8080"
     networks:
       - candidate-manager
 
