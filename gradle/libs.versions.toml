@@ -29,6 +29,7 @@ logback-classic          = { module = "ch.qos.logback:logback-classic" }
 logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-encoder" }
 
 # --- Micronaut core (versions pinned by Micronaut platform BOM) --------------
+micronaut-context              = { module = "io.micronaut:micronaut-context" }
 micronaut-inject               = { module = "io.micronaut:micronaut-inject" }
 micronaut-inject-java          = { module = "io.micronaut:micronaut-inject-java" }
 micronaut-http-server-netty    = { module = "io.micronaut:micronaut-http-server-netty" }
