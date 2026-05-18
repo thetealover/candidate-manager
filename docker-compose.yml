@@ -1,6 +1,6 @@
 services:
   candidate-manager-ws-postgresql:
-    container_name: candidate-manager-ws
+    container_name: candidate-manager-postgres
     image: postgres:16
     ports:
       - "5432:5432"
