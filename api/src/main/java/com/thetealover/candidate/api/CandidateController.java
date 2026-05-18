@@ -77,8 +77,9 @@ public class CandidateController {
   @Operation(
       summary = "Register a new candidate",
       description =
-          "Validates the payload, enforces email uniqueness across active candidates, "
-              + "and stores the candidate in NOT_VERIFIED state.")
+          """
+          Validates the payload, enforces email uniqueness across active candidates, \
+          and stores the candidate in NOT_VERIFIED state.""")
   @ApiResponse(
       responseCode = "201",
       description = "Candidate created; Location header points at the new resource.",
@@ -106,7 +107,7 @@ public class CandidateController {
                 .toList());
 
     final Candidate c = register.execute(cmd);
-    return HttpResponse.created(URI.create("/api/v1/candidates/" + c.id().value()))
+    return HttpResponse.created(URI.create("/api/v1/candidates/%s".formatted(c.id().value())))
         .body(CandidateResponse.from(c));
   }
 
@@ -154,8 +155,9 @@ public class CandidateController {
   @Operation(
       summary = "Trigger asynchronous eligibility verification",
       description =
-          "Moves the candidate to VERIFICATION_IN_PROGRESS and dispatches the rule "
-              + "evaluation on a virtual-thread executor. Returns 202 immediately.")
+          """
+          Moves the candidate to VERIFICATION_IN_PROGRESS and dispatches the rule \
+          evaluation on a virtual-thread executor. Returns 202 immediately.""")
   @ApiResponse(responseCode = "202", description = "Verification queued.")
   @ApiResponse(
       responseCode = "400",

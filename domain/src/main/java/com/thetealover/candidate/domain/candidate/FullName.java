@@ -9,7 +9,7 @@ public record FullName(String firstName, String lastName) {
 
   private static String trimOrThrow(final String value, final String field) {
     if (value == null || value.isBlank()) {
-      throw new IllegalArgumentException(field + " must not be blank");
+      throw new IllegalArgumentException("%s must not be blank".formatted(field));
     }
     return value.trim();
   }

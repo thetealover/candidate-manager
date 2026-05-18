@@ -50,7 +50,7 @@ class CandidateJpaRepositoryAdapterIT {
     final Candidate c =
         Candidate.register(
             new FullName("Roundtrip", "Tester"),
-            new Email("rt+" + java.util.UUID.randomUUID() + "@example.com"),
+            new Email("rt+%s@example.com".formatted(java.util.UUID.randomUUID())),
             new DateOfBirth(LocalDate.of(1992, 1, 1)),
             new EducationBackground(HighestDegree.MASTER, 3),
             ProgramLevel.LEVEL_I,
@@ -65,7 +65,7 @@ class CandidateJpaRepositoryAdapterIT {
 
   @Test
   void exists_active_by_email_ignores_soft_deleted_rows() {
-    final Email email = new Email("dup+" + java.util.UUID.randomUUID() + "@example.com");
+    final Email email = new Email("dup+%s@example.com".formatted(java.util.UUID.randomUUID()));
 
     final Candidate c =
         Candidate.register(

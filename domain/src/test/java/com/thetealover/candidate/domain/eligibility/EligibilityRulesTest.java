@@ -28,7 +28,7 @@ class EligibilityRulesTest {
       final List<PriorExamPass> priorPasses) {
     return Candidate.register(
         new FullName("Test", "Subject"),
-        new Email("test+" + UUID.randomUUID() + "@example.com"),
+        new Email("test+%s@example.com".formatted(UUID.randomUUID())),
         new DateOfBirth(LocalDate.of(1990, 1, 1)),
         new EducationBackground(degree, yearsExperience),
         level,

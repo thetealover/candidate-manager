@@ -47,7 +47,7 @@ class CandidateRegistrationIT {
         Map.of(
             "firstName", "Alice",
             "lastName", "Anderson",
-            "email", "alice+" + UUID.randomUUID() + "@example.com",
+            "email", "alice+%s@example.com".formatted(UUID.randomUUID()),
             "dateOfBirth", "1995-01-01",
             "education", Map.of("highestDegree", "BACHELOR", "yearsExperience", 2),
             "programLevel", "LEVEL_I",

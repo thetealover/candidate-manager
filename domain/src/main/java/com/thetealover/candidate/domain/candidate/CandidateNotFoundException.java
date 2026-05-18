@@ -5,7 +5,7 @@ public final class CandidateNotFoundException extends RuntimeException {
   private final CandidateId id;
 
   public CandidateNotFoundException(final CandidateId id) {
-    super("candidate not found: " + id.value());
+    super("candidate not found: %s".formatted(id.value()));
     this.id = id;
   }
 

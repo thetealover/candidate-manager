@@ -48,23 +48,19 @@ public final class EligibilityRules {
     if (latest.isEmpty()) {
       return new RuleEvaluation(
           EligibilityOutcome.INELIGIBLE,
-          label + " requires a " + required + " pass; candidate has no record of one.");
+          "%s requires a %s pass; candidate has no record of one.".formatted(label, required));
     }
 
     final PriorExamPass pass = latest.get();
     if (pass.passedWithin(RECENCY_WINDOW)) {
       return new RuleEvaluation(
           EligibilityOutcome.ELIGIBLE,
-          label + " eligibility: candidate passed " + required + " on " + pass.passedOn() + ".");
+          "%s eligibility: candidate passed %s on %s.".formatted(label, required, pass.passedOn()));
     }
     return new RuleEvaluation(
         EligibilityOutcome.INELIGIBLE,
-        label
-            + " requires a "
-            + required
-            + " pass within 5 years; latest pass on "
-            + pass.passedOn()
-            + " is outside the window.");
+        "%s requires a %s pass within 5 years; latest pass on %s is outside the window."
+            .formatted(label, required, pass.passedOn()));
   }
 
   private static boolean holdsAtLeastBachelor(final HighestDegree degree) {

@@ -16,8 +16,10 @@ import java.util.UUID;
 public interface CandidateMicronautRepository extends CrudRepository<CandidateJpaEntity, UUID> {
 
   @Query(
-      "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
-          + "where c.id = :id and c.deletedAt is null")
+      """
+      select distinct c from CandidateJpaEntity c left join fetch c.priorPasses
+      where c.id = :id and c.deletedAt is null
+      """)
   Optional<CandidateJpaEntity> findActiveById(UUID id);
 
   @Query("select count(c) from CandidateJpaEntity c where c.email = :email and c.deletedAt is null")
@@ -31,52 +33,68 @@ public interface CandidateMicronautRepository extends CrudRepository<CandidateJp
    * PersistentList.
    */
   @Query(
-      "update CandidateJpaEntity c set c.eligibilityStatus = :status, c.deletedAt = :deletedAt"
-          + " where c.id = :id")
+      """
+      update CandidateJpaEntity c set c.eligibilityStatus = :status, c.deletedAt = :deletedAt
+      where c.id = :id
+      """)
   int updateMutableFields(
       UUID id, EligibilityStatus status, @jakarta.annotation.Nullable Instant deletedAt);
 
   @Query(
       value =
-          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
-              + "where c.deletedAt is null "
-              + "order by c.registeredAt desc",
+          """
+          select distinct c from CandidateJpaEntity c left join fetch c.priorPasses
+          where c.deletedAt is null
+          order by c.registeredAt desc
+          """,
       countQuery = "select count(c) from CandidateJpaEntity c where c.deletedAt is null")
   Page<CandidateJpaEntity> searchActive(Pageable pageable);
 
   @Query(
       value =
-          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
-              + "where c.deletedAt is null "
-              + "and c.eligibilityStatus = :status "
-              + "order by c.registeredAt desc",
+          """
+          select distinct c from CandidateJpaEntity c left join fetch c.priorPasses
+          where c.deletedAt is null
+          and c.eligibilityStatus = :status
+          order by c.registeredAt desc
+          """,
       countQuery =
-          "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
-              + "and c.eligibilityStatus = :status")
+          """
+          select count(c) from CandidateJpaEntity c where c.deletedAt is null
+          and c.eligibilityStatus = :status
+          """)
   Page<CandidateJpaEntity> searchActiveByStatus(EligibilityStatus status, Pageable pageable);
 
   @Query(
       value =
-          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
-              + "where c.deletedAt is null "
-              + "and c.programLevel = :program "
-              + "order by c.registeredAt desc",
+          """
+          select distinct c from CandidateJpaEntity c left join fetch c.priorPasses
+          where c.deletedAt is null
+          and c.programLevel = :program
+          order by c.registeredAt desc
+          """,
       countQuery =
-          "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
-              + "and c.programLevel = :program")
+          """
+          select count(c) from CandidateJpaEntity c where c.deletedAt is null
+          and c.programLevel = :program
+          """)
   Page<CandidateJpaEntity> searchActiveByProgram(ProgramLevel program, Pageable pageable);
 
   @Query(
       value =
-          "select distinct c from CandidateJpaEntity c left join fetch c.priorPasses "
-              + "where c.deletedAt is null "
-              + "and c.eligibilityStatus = :status "
-              + "and c.programLevel = :program "
-              + "order by c.registeredAt desc",
+          """
+          select distinct c from CandidateJpaEntity c left join fetch c.priorPasses
+          where c.deletedAt is null
+          and c.eligibilityStatus = :status
+          and c.programLevel = :program
+          order by c.registeredAt desc
+          """,
       countQuery =
-          "select count(c) from CandidateJpaEntity c where c.deletedAt is null "
-              + "and c.eligibilityStatus = :status "
-              + "and c.programLevel = :program")
+          """
+          select count(c) from CandidateJpaEntity c where c.deletedAt is null
+          and c.eligibilityStatus = :status
+          and c.programLevel = :program
+          """)
   Page<CandidateJpaEntity> searchActiveByStatusAndProgram(
       EligibilityStatus status, ProgramLevel program, Pageable pageable);
 }
