@@ -4011,13 +4011,16 @@ git commit -m "docs(api): annotate controller and DTOs with OpenAPI/Swagger meta
 
 ---
 
-### Task 28: Update `application.yml` with Jackson strict mode + correlation MDC
+### Task 28: Strict Jackson + split logback (plain default, JSON for dev)
+
+**Decision:** JSON-formatted logging is only used in the deployed `dev` environment. The `local` and `test` environments use a plain, human-readable console layout for developer ergonomics. The `dev` environment selects an alternate logback file via Micronaut's `logger.config` property.
 
 **Files:**
 - Modify: `api/src/main/resources/application.yml`
-- Modify: `api/src/main/resources/logback.xml`
+- Rewrite: `api/src/main/resources/logback.xml` (default — plain console)
+- Create: `api/src/main/resources/logback-dev.xml` (JSON via LogstashEncoder)
 
-- [ ] **Step 1: Add strict Jackson and explicit endpoint logger to `application.yml`**
+- [ ] **Step 1: Add strict Jackson to `application.yml`**
 
 Append to `api/src/main/resources/application.yml`:
 
@@ -4029,21 +4032,74 @@ jackson:
 
 (`jackson.serialization-inclusion: NON_NULL` is already present; do not duplicate.)
 
-- [ ] **Step 2: Update `logback.xml` so `correlationId` is a promoted MDC field**
+- [ ] **Step 2: Replace `logback.xml` with a plain-text default**
 
-Replace the `includeMdcKeyName` lines so they include `correlationId` instead of `requestId`:
+Used by `local` and `test`. MDC keys are still surfaced (so correlation ids show in the line), just not encoded as JSON.
 
 ```xml
-<includeMdcKeyName>correlationId</includeMdcKeyName>
-<includeMdcKeyName>actorId</includeMdcKeyName>
-<includeMdcKeyName>candidateId</includeMdcKeyName>
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+      Default Logback configuration. Used by the 'local' and 'test' environments
+      for a readable terminal output. The 'dev' environment loads logback-dev.xml
+      via `logger.config: classpath:logback-dev.xml` in application-dev.yml.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} [correlationId=%X{correlationId:-} actorId=%X{actorId:-} candidateId=%X{candidateId:-}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.thetealover" level="DEBUG"/>
+    <logger name="io.micronaut" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="INFO"/>
+    <logger name="liquibase" level="INFO"/>
+</configuration>
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: Create `logback-dev.xml` with JSON encoding**
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+      JSON-formatted logging for the deployed 'dev' environment. Activated via
+      `logger.config: classpath:logback-dev.xml` in application-dev.yml.
+      MDC keys (correlationId, actorId, candidateId) are promoted to top-level
+      fields so they're easy to query in a log aggregator.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <includeMdcKeyName>actorId</includeMdcKeyName>
+            <includeMdcKeyName>candidateId</includeMdcKeyName>
+            <customFields>{"service":"candidate-manager"}</customFields>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.thetealover" level="INFO"/>
+    <logger name="io.micronaut" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="liquibase" level="INFO"/>
+</configuration>
+```
+
+- [ ] **Step 4: Commit**
 
 ```bash
 git add api/src/main/resources
-git commit -m "chore(api): enforce strict Jackson and align MDC key name with design"
+git commit -m "chore(api): strict Jackson; plain logback default + JSON variant for dev"
 ```
 
 ---
@@ -4087,7 +4143,10 @@ datasources:
     username: ${JDBC_USER}
     password: ${JDBC_PASSWORD}
 
+# Switch to JSON-formatted logging in the deployed 'dev' environment.
+# The 'local' and 'test' environments stay on the readable plain layout.
 logger:
+  config: classpath:logback-dev.xml
   levels:
     com.thetealover: INFO
     org.hibernate.SQL: WARN
