@@ -178,7 +178,15 @@ public class CandidateController {
           @Header(value = "X-Actor-Id", defaultValue = "")
           final String actorId) {
     if (actorId.isBlank()) throw new MissingHeaderException("X-Actor-Id");
-    final UUID correlationId = UUID.fromString(MDC.get("correlationId"));
+    // The request-context filter populates MDC.correlationId on the Netty I/O thread.
+    // When the executor propagates MDC (default Micronaut behaviour) the value is
+    // available here; fall back to a fresh UUID if propagation is disabled (e.g. tests
+    // with a non-instrumented CACHED executor).
+    final String mdcCorrelation = MDC.get("correlationId");
+    final UUID correlationId =
+        mdcCorrelation != null && !mdcCorrelation.isBlank()
+            ? UUID.fromString(mdcCorrelation)
+            : UUID.randomUUID();
     requestEligibility.execute(CandidateId.of(id), correlationId, actorId);
     return HttpResponse.accepted();
   }
