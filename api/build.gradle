@@ -81,5 +81,6 @@ dependencies {
     testImplementation libs.micronaut.test.junit5
     testImplementation libs.micronaut.http.client
     testImplementation libs.bundles.testcontainers
+    testImplementation libs.awaitility
     testRuntimeOnly    libs.junit.platform.launcher
 }
