@@ -5,6 +5,7 @@ import com.thetealover.candidate.api.dto.CandidateResponse;
 import com.thetealover.candidate.api.dto.PageResponse;
 import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
+import com.thetealover.candidate.api.problem.ProblemDetail;
 import com.thetealover.candidate.application.GetCandidateUseCase;
 import com.thetealover.candidate.application.RegisterCandidateCommand;
 import com.thetealover.candidate.application.RegisterCandidateUseCase;
@@ -36,11 +37,18 @@ import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
 import io.micronaut.validation.Validated;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;
 import org.slf4j.MDC;
 
+@Tag(name = "Candidates", description = "Candidate registration and eligibility verification.")
 @Controller("/api/v1/candidates")
 @Validated
 @ExecuteOn(TaskExecutors.BLOCKING)
@@ -66,6 +74,23 @@ public class CandidateController {
   }
 
   @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
+  @Operation(
+      summary = "Register a new candidate",
+      description =
+          "Validates the payload, enforces email uniqueness across active candidates, "
+              + "and stores the candidate in NOT_VERIFIED state.")
+  @ApiResponse(
+      responseCode = "201",
+      description = "Candidate created; Location header points at the new resource.",
+      content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+  @ApiResponse(
+      responseCode = "400",
+      description = "Validation failure (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "Email already registered to an active candidate (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public HttpResponse<CandidateResponse> create(
       @Body @Valid final CandidateRegistrationRequest body) {
     final RegisterCandidateCommand cmd =
@@ -86,7 +111,16 @@ public class CandidateController {
   }
 
   @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
-  public CandidateResponse byId(@PathVariable final UUID id) {
+  @Operation(summary = "Get a candidate by id")
+  @ApiResponse(
+      responseCode = "200",
+      content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Unknown id or soft-deleted candidate.",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  public CandidateResponse byId(
+      @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id) {
     MDC.put("candidateId", id.toString());
     try {
       return CandidateResponse.from(get.execute(CandidateId.of(id)));
@@ -96,11 +130,19 @@ public class CandidateController {
   }
 
   @Get(produces = MediaType.APPLICATION_JSON)
+  @Operation(summary = "Search active candidates with filtering and pagination")
+  @ApiResponse(responseCode = "200", description = "A page of matching candidates.")
   public PageResponse<CandidateResponse> list(
-      @QueryValue(defaultValue = "") final String status,
-      @QueryValue(defaultValue = "") final String program,
-      @QueryValue(defaultValue = "0") final int page,
-      @QueryValue(defaultValue = "20") final int size) {
+      @Parameter(description = "Filter by eligibility status.") @QueryValue(defaultValue = "")
+          final String status,
+      @Parameter(description = "Filter by program level.") @QueryValue(defaultValue = "")
+          final String program,
+      @Parameter(description = "Zero-based page index.", example = "0")
+          @QueryValue(defaultValue = "0")
+          final int page,
+      @Parameter(description = "Page size (1..100).", example = "20")
+          @QueryValue(defaultValue = "20")
+          final int size) {
     final EligibilityStatus statusFilter =
         status.isBlank() ? null : EligibilityStatus.valueOf(status);
     final ProgramLevel programFilter = program.isBlank() ? null : ProgramLevel.valueOf(program);
@@ -109,9 +151,32 @@ public class CandidateController {
   }
 
   @Put("/{id}/eligibility")
+  @Operation(
+      summary = "Trigger asynchronous eligibility verification",
+      description =
+          "Moves the candidate to VERIFICATION_IN_PROGRESS and dispatches the rule "
+              + "evaluation on a virtual-thread executor. Returns 202 immediately.")
+  @ApiResponse(responseCode = "202", description = "Verification queued.")
+  @ApiResponse(
+      responseCode = "400",
+      description = "Missing X-Actor-Id header (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Unknown id or soft-deleted (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "Verification already in progress (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public HttpResponse<Void> triggerEligibility(
-      @PathVariable final UUID id,
-      @Header(value = "X-Actor-Id", defaultValue = "") final String actorId) {
+      @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
+      @Parameter(
+              description = "Actor performing the action.",
+              required = true,
+              example = "user-123")
+          @Header(value = "X-Actor-Id", defaultValue = "")
+          final String actorId) {
     if (actorId.isBlank()) throw new MissingHeaderException("X-Actor-Id");
     final UUID correlationId = UUID.fromString(MDC.get("correlationId"));
     requestEligibility.execute(CandidateId.of(id), correlationId, actorId);
@@ -119,9 +184,28 @@ public class CandidateController {
   }
 
   @Delete("/{id}")
+  @Operation(summary = "Soft-delete a candidate")
+  @ApiResponse(responseCode = "204", description = "Soft-deleted.")
+  @ApiResponse(
+      responseCode = "400",
+      description = "Missing X-Actor-Id header (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "404",
+      description = "Unknown id (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+  @ApiResponse(
+      responseCode = "409",
+      description = "Already deleted (RFC 7807).",
+      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public HttpResponse<Void> deleteOne(
-      @PathVariable final UUID id,
-      @Header(value = "X-Actor-Id", defaultValue = "") final String actorId) {
+      @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
+      @Parameter(
+              description = "Actor performing the action.",
+              required = true,
+              example = "user-123")
+          @Header(value = "X-Actor-Id", defaultValue = "")
+          final String actorId) {
     if (actorId.isBlank()) throw new MissingHeaderException("X-Actor-Id");
     softDelete.execute(CandidateId.of(id));
     return HttpResponse.noContent();
