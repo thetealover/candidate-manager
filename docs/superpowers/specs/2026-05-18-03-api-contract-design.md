@@ -227,7 +227,20 @@ Exceptions thrown by controllers are caught by exception handlers and logged at 
 
 ## OpenAPI
 
-Micronaut's OpenAPI annotation processor generates `swagger.yml` at build time. The static UI is served at `/swagger-ui` (already wired in `application.yml`). Each controller method carries `@Operation`, `@ApiResponse` annotations enumerating the documented status codes above. Every DTO carries `@Schema` annotations with examples.
+Micronaut's OpenAPI annotation processor generates the spec (`candidate-manager-ws-api-<version>.yml`) and the Swagger UI / Redoc / RapiDoc view bundles at compile time. Generation is enabled by `-Amicronaut.openapi.views.spec=swagger-ui.enabled=true,redoc.enabled=true,rapidoc.enabled=true` on the `:api` `JavaCompile` task.
+
+Each controller method carries `@Operation` and `@ApiResponse` annotations enumerating the documented status codes above. Every DTO carries `@Schema` annotations with examples.
+
+**Exposure is gated to the `local` environment only.** The `micronaut.router.static-resources.swagger*` mappings live in `application-local.yml`, not the base `application.yml`, so:
+
+- In `local` (`MICRONAUT_ENVIRONMENTS=local`):
+  - Swagger UI → <http://localhost:8080/swagger-ui/index.html>
+  - Redoc → <http://localhost:8080/swagger-ui/redoc/index.html>
+  - RapiDoc → <http://localhost:8080/swagger-ui/rapidoc/index.html>
+  - Raw spec → <http://localhost:8080/swagger/candidate-manager-ws-api-0.1.0.yml>
+- In `dev`, `test`, or the default profile → all of the above return 404.
+
+Rationale: the UI is a development affordance, not part of the production contract. Production clients consume the spec out-of-band (CI artifact) and do not need a live UI on the service.
 
 ## Out of scope
 
