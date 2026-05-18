@@ -69,7 +69,9 @@ project(':domain') {
     }
 
     tasks.register('jacocoCoverageVerification', JacocoCoverageVerification) {
-        dependsOn tasks.named('test')
+        dependsOn tasks.named('jacocoTestReport')
+        executionData fileTree(layout.buildDirectory.dir('jacoco')).include('*.exec')
+        sourceSets sourceSets.main
         violationRules {
             rule {
                 element = 'BUNDLE'
