@@ -52,7 +52,8 @@ tasks.withType(Test).configureEach {
     // Disable Ryuk (the Testcontainers cleanup daemon) to avoid issues with
     // Docker socket mounting on macOS Docker Desktop.
     environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
-    testLogging.showStandardStreams = true
+    // Show stdout/stderr only on failure (set to true locally to debug Testcontainers)
+    testLogging.showStandardStreams = false
     // Forward ryuk disable flag for CI environments.
     def ryukDisabled = System.getenv('TESTCONTAINERS_RYUK_DISABLED')
     if (ryukDisabled) {
