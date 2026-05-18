@@ -1,0 +1,34 @@
+# Test-environment overrides for @MicronautTest ITs.
+# The JDBC URL/user/password are injected via @Property annotations pointing at
+# TC_URL / TC_USER / TC_PASS system properties set by the static Testcontainers block.
+# Schema is public because Testcontainers starts a blank database.
+
+micronaut:
+  executors:
+    blocking:
+      # 'virtual' is a Micronaut 4 extension recognised by the plugin at runtime but
+      # not by the core scheduling module used in unit-test scope. Override to CACHED
+      # so the Netty server boots in @MicronautTest without AOT.
+      type: CACHED
+
+datasources:
+  default:
+    driver-class-name: org.postgresql.Driver
+    dialect: POSTGRES
+    schema: public
+
+jpa:
+  default:
+    properties:
+      hibernate:
+        hbm2ddl:
+          auto: validate
+        jdbc:
+          time_zone: UTC
+
+liquibase:
+  datasources:
+    default:
+      change-log: classpath:db/changelog/db.changelog-master.yaml
+      default-schema-name: public
+      liquibase-schema-name: public

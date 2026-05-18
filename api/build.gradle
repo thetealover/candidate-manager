@@ -29,6 +29,25 @@ micronaut {
     }
 }
 
+// Pass DOCKER_HOST to the test JVM so Testcontainers can find the Docker daemon.
+// Mirrors the same block in infrastructure/build.gradle.
+tasks.withType(Test).configureEach {
+    def userHome = System.getProperty('user.home')
+    def rawSocket = new File(userHome, 'Library/Containers/com.docker.docker/Data/docker.raw.sock')
+    def desktopSocket = new File(userHome, '.docker/run/docker.sock')
+    def dockerHostEnv = System.getenv('DOCKER_HOST')
+    if (dockerHostEnv) {
+        environment 'DOCKER_HOST', dockerHostEnv
+    } else if (rawSocket.exists()) {
+        environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+    } else if (desktopSocket.exists()) {
+        environment 'DOCKER_HOST', "unix://${desktopSocket.absolutePath}"
+    }
+    environment 'DOCKER_API_VERSION', '1.45'
+    systemProperty 'api.version', '1.45'
+    environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
+}
+
 dependencies {
     implementation project(':application')
     runtimeOnly    project(':infrastructure')
