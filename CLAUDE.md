@@ -22,7 +22,7 @@ ADRs (one per locked trade-off) live in `docs/adr/` once authored. The final del
 - **JPA (Hibernate)** for persistence. Domain classes never carry JPA annotations.
 - **Liquibase** for schema migrations.
 - **Spotless** with `googleJavaFormat` for code formatting.
-- **SLF4J + Logback** with JSON encoder for logs.
+- **SLF4J + Logback**. JSON encoder (`logstash-logback-encoder`) in the deployed `dev` environment; plain pattern layout in `local` and `test` for readable terminal output.
 - **JUnit 5 + Mockito** + **AssertJ** for tests. **Testcontainers** for integration tests.
 - Classic blocking style on **virtual threads** (`executors.blocking.type: virtual`).
 - **PostgreSQL 16**.
@@ -78,8 +78,9 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 
 ## Logging conventions
 
-- **JSON-formatted output** via `logstash-logback-encoder`. Never `printStackTrace`.
-- **MDC keys:** `correlationId` (always), `actorId` (when present on the request).
+- **Per-environment layout.** The `dev` environment emits JSON via `logstash-logback-encoder` (selected by `logger.config: classpath:logback-dev.xml` in `application-dev.yml`). The `local` and `test` environments use the default plain pattern layout in `logback.xml`. MDC keys are surfaced in both — promoted to top-level JSON fields in `dev`, inlined into the pattern in `local`/`test`.
+- **Never `printStackTrace`.** Always log through SLF4J.
+- **MDC keys:** `correlationId` (always), `actorId` (when present on the request), `candidateId` (when known).
 - **Endpoint logging is centralized** in a single Micronaut `HttpServerFilter`:
   - On entry: `DEBUG` — `"http.request.received"` with method/path/query/correlationId/actorId. No body.
   - On completion: `INFO` — `"http.request.completed"` with method/path/status/durationMs/correlationId.
