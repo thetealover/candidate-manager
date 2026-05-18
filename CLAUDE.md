@@ -63,7 +63,10 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 - **Domain tests use no mocks.** The domain has no collaborators that need mocking — its dependencies are pure interfaces (`Clock`, the repository ports), trivial to stub or fake.
 - **AssertJ for assertions.** No raw `org.junit.jupiter.api.Assertions` for non-trivial checks.
 - **80% line coverage gate on `domain`.** Already enforced by `jacocoCoverageVerification` in `build.gradle`.
-- **At least one full HTTP integration test** (Testcontainers-backed) covering a happy-path endpoint end-to-end.
+- **HTTP end-to-end integration tests** live in `api/src/test/` with the `IT` suffix. They use `@MicronautTest` (the Micronaut analog of Spring's `@SpringBootTest`) which boots a real Netty server on a random port; tests fire real HTTP through Micronaut's `BlockingHttpClient` / `@Client`. There is no `MockMvc` equivalent because Micronaut does not fake the HTTP layer — and that's a feature, not a gap. Backed by Testcontainers Postgres so migrations and JPA mappings are exercised against a real database.
+- **Adapter tests** live in `infrastructure/src/test/`, also Testcontainers-backed, and verify each port adapter against the real schema.
+- **Application/use-case tests** live in `application/src/test/` and use Mockito on the port interfaces. No Micronaut context, no DB.
+- **Coverage gate:** 80% line coverage on `domain` (already enforced by `jacocoCoverageVerification` in `build.gradle`).
 
 ## SQL / migration conventions
 
@@ -107,9 +110,9 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 # Apply Liquibase migrations against a running Postgres (db is created by docker compose)
 ./gradlew :infrastructure:update     # if a Liquibase Gradle plugin task is wired; otherwise migrations run at app startup
 
-# Run the service locally
+# Run the service locally (uses 'local' environment: localhost Postgres + test-data)
 docker compose up -d                  # starts Postgres
-./gradlew :api:run                    # starts the Micronaut app on :8080
+MICRONAUT_ENVIRONMENTS=local ./gradlew :api:run    # starts the Micronaut app on :8080
 
 # One-shot for graders ("docker compose up" must start the whole stack)
 docker compose up --build

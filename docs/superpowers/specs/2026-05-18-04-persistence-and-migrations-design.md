@@ -106,6 +106,8 @@ create index if not exists ix_audit_candidate
 
 A handful (3–5) of candidates spanning levels and statuses — for manual exercise of `GET /candidates` filtering and `GET /candidates/{id}`. Inserted with `insert into ... on conflict do nothing` so re-running the changeset against a partially-populated schema is safe (and the changeset is marked `runAlways:false` so Liquibase will not normally re-run it anyway).
 
+**Environment gating via Liquibase `context`:** every changeset in this file carries `context:"test-data"`. The `local` environment activates that context (`liquibase.contexts: test-data` in `application-local.yml`); other environments (`dev`, `test`) leave the context unset, so the changeset is skipped. This keeps the test-data file in the master changelog (one canonical include list) while preventing it from polluting deployed environments. See the Environments section of the architecture design for activation details.
+
 ## JPA entity layer
 
 JPA entities live in `infrastructure`, not `domain`. Each has a hand-written static mapper to/from its domain counterpart. This keeps the domain free of Hibernate concerns (no `@Entity`, no protected no-arg constructor, no mutable collections, no proxying considerations).
