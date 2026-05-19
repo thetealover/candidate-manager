@@ -88,7 +88,7 @@ changes.
 
 ## Out-of-module follow-on edits
 
-### `api/CandidateController`
+### `api/CandidateControllerV1`
 
 Six imports change from `com.thetealover.candidate.application.<Name>` to
 `com.thetealover.candidate.application.<aggregate>.<verb>.<Name>`. Four call
@@ -142,6 +142,6 @@ A single PR, sequenced for reviewability:
    `…Command` records and adjusting use-case signatures.
 2. Move and split tests; update package declarations and `execute(...)`
    call sites.
-3. Update `CandidateController` imports and call sites.
+3. Update `CandidateControllerV1` imports and call sites.
 4. Update the `adding-a-use-case` skill.
 5. Run `./gradlew spotlessApply check` to confirm green.

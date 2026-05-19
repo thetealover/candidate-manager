@@ -30,7 +30,7 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
      ```java
      MDC.put("candidateId", id.toString());
      try {
-       return CandidateResponse.from(get.execute(CandidateId.of(id)));
+       return CandidateDto.from(get.execute(CandidateId.of(id)));
      } finally {
        MDC.remove("candidateId");
      }
@@ -38,13 +38,13 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
 
 4. **OpenAPI annotations** on the controller method:
    - `@Operation(summary = "...", description = """ ... """)` — description as a text block when multi-line. **No `+` concat.**
-   - One `@ApiResponse` per status (200/201/202/204/400/404/409). Error responses point at `ProblemDetail.class`:
+   - One `@ApiResponse` per status (200/201/202/204/400/404/409). Error responses point at `ProblemDetailDto.class`:
 
      ```java
      @ApiResponse(
          responseCode = "404",
          description = "Unknown id (RFC 7807).",
-         content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+         content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
      ```
 5. **Errors flow through `ProblemDetailExceptionHandler`**:
    - For a new domain exception, add a branch in the handler (status code + RFC 7807 `type` slug). See `api/src/main/java/.../problem/ProblemDetailExceptionHandler.java`.
@@ -62,7 +62,7 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
 - **MDC keys:** `correlationId` (set by the filter), `actorId` (when present), `candidateId` (push/remove in the controller method).
 - **DTO immutability:** records, not classes. `@Serdeable` is the Micronaut equivalent of `@JsonDeserialize` — keep it on every request and response record.
 - **OpenAPI:** every endpoint has an `@Operation` summary and a complete `@ApiResponse` list including every 4xx/5xx it can produce. Multi-line descriptions are text blocks.
-- **Error model is RFC 7807.** Single `ProblemDetail` shape across the API. New domain exceptions get a new branch in `ProblemDetailExceptionHandler` and a new OpenAPI `@ApiResponse`.
+- **Error model is RFC 7807.** Single `ProblemDetailDto` shape across the API. New domain exceptions get a new branch in `ProblemDetailExceptionHandler` and a new OpenAPI `@ApiResponse`.
 
 ## Reference: registration endpoint
 
@@ -76,20 +76,20 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
         and stores the candidate in NOT_VERIFIED state.""")
 @ApiResponse(
     responseCode = "201",
-    content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+    content = @Content(schema = @Schema(implementation = CandidateDto.class)))
 @ApiResponse(
     responseCode = "400",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(
     responseCode = "409",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-public HttpResponse<CandidateResponse> create(
-    @Body @Valid final CandidateRegistrationRequest body) {
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
+public HttpResponse<CandidateDto> create(
+    @Body @Valid final CandidateRegistrationRequestDto body) {
   final RegisterCandidateCommand command = /* build from body */;
   final Candidate candidate = register.execute(command);
   return HttpResponse.created(
           URI.create("/api/v1/candidates/%s".formatted(candidate.id().value())))
-      .body(CandidateResponse.from(candidate));
+      .body(CandidateDto.from(candidate));
 }
 ```
 
@@ -97,7 +97,7 @@ public HttpResponse<CandidateResponse> create(
 
 This is intentional — don't collapse it:
 
-1. **DTO Bean Validation** (`@NotBlank`, `@Email`, `@Past`, `@Size`) — fast HTTP-friendly errors with field-level detail in `ProblemDetail.errors[]`.
+1. **DTO Bean Validation** (`@NotBlank`, `@Email`, `@Past`, `@Size`) — fast HTTP-friendly errors with field-level detail in `ProblemDetailDto.errors[]`.
 2. **Domain value object constructor** (`Email`, `DateOfBirth`, etc.) — correctness invariant, independent of entry point.
 3. **Database constraints** (NOT NULL, partial unique index, CHECK) — source of truth.
 
@@ -107,7 +107,7 @@ A 400 from layer 1 means the client sent malformed input. A 409 from layer 3 mea
 
 - [ ] DTO record has `@Serdeable`, every field has a Bean Validation annotation, every field has a `@Schema`.
 - [ ] Controller class has `@Controller`, `@Validated`, `@ExecuteOn(TaskExecutors.BLOCKING)`.
-- [ ] Each method has an `@Operation` and an `@ApiResponse` per status it can produce. Error responses reference `ProblemDetail.class`.
+- [ ] Each method has an `@Operation` and an `@ApiResponse` per status it can produce. Error responses reference `ProblemDetailDto.class`.
 - [ ] Required headers checked with `@Header(value = "…", defaultValue = "")` + `isBlank()` + `MissingHeaderException`. Not `@Header(required = true)`.
 - [ ] If a new domain exception can be thrown, it has a matching branch in `ProblemDetailExceptionHandler`.
 - [ ] No body logging on candidate endpoints (the central filter handles request-line logging).
@@ -118,7 +118,7 @@ A 400 from layer 1 means the client sent malformed input. A 409 from layer 3 mea
 
 | Mistake | Fix |
 |---|---|
-| Returning a domain exception's message in a plain `String` body | Always return `ProblemDetail` (RFC 7807). Add the exception branch to `ProblemDetailExceptionHandler`. |
+| Returning a domain exception's message in a plain `String` body | Always return `ProblemDetailDto` (RFC 7807). Add the exception branch to `ProblemDetailExceptionHandler`. |
 | Forgetting `@ExecuteOn(TaskExecutors.BLOCKING)` on a controller that hits JPA | Either the class-level annotation (preferred) or per-method. Otherwise JPA blocks a Netty event loop. |
 | Concatenating the OpenAPI description: `description = "line 1 " + "line 2"` | Text block: `description = """ line 1 line 2 """`. Annotations can't take `.formatted()`. |
 | Logging the request body for debugging | Candidate endpoints carry PII (email, DOB). Add MDC keys to identify the actor/correlation instead. |

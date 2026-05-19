@@ -55,7 +55,7 @@ infrastructure ┘                    ▲
   - Liquibase changelog files under `db/changelog/`.
 
 - **`api`** — REST adapters. Depends on `application` (for use-case interfaces) and Micronaut/Jackson. Contains:
-  - Controllers (`CandidateController`).
+  - Controllers (`CandidateControllerV1`).
   - Request / response DTOs with Jakarta Bean Validation annotations.
   - RFC 7807 exception handlers (`ProblemDetailExceptionHandler` family).
   - Micronaut server filter for correlation id + endpoint logging + actor id propagation.
@@ -154,7 +154,7 @@ In-memory event delivery means a JVM crash between the `IN_PROGRESS` save and th
 - **Correlation id.** Server filter reads `X-Correlation-Id`; generates a UUID v4 if absent. Echoed in the response header. Placed in MDC; propagated to the async listener via Micronaut's event publishing (the event carries it, and the listener restores MDC at entry).
 - **Actor id.** Server filter reads `X-Actor-Id`. Required on `PUT /eligibility` and `DELETE`; defaulted to `system` on other endpoints (where it isn't audited).
 - **Validation.** Jakarta Bean Validation on every DTO field. `@Valid` cascades into nested objects. Constraint violations land in `ConstraintExceptionHandler` and become RFC 7807 responses.
-- **Error responses.** RFC 7807 (`application/problem+json`). Single `ProblemDetail` shape across the API: `type`, `title`, `status`, `detail`, `instance`, plus extensions `correlationId` and `errors[]` when applicable.
+- **Error responses.** RFC 7807 (`application/problem+json`). Single `ProblemDetailDto` shape across the API: `type`, `title`, `status`, `detail`, `instance`, plus extensions `correlationId` and `errors[]` when applicable.
 
 ## Testing strategy
 
@@ -206,14 +206,14 @@ class CandidateRegistrationIT {
         final var createResponse = client.toBlocking().exchange(
             HttpRequest.POST("/api/v1/candidates", body)
                        .header("X-Correlation-Id", UUID.randomUUID().toString()),
-            CandidateResponse.class);
+            CandidateDto.class);
 
         assertThat(createResponse.status()).isEqualTo(HttpStatus.CREATED);
         final var location = createResponse.header(HttpHeaders.LOCATION);
         assertThat(location).startsWith("/api/v1/candidates/");
 
         final var fetched = client.toBlocking().retrieve(
-            HttpRequest.GET(location), CandidateResponse.class);
+            HttpRequest.GET(location), CandidateDto.class);
 
         assertThat(fetched.email()).isEqualTo("alice@example.com");
         assertThat(fetched.eligibilityStatus()).isEqualTo(EligibilityStatus.NOT_VERIFIED);

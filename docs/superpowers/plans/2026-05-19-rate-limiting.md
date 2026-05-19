@@ -1392,16 +1392,16 @@ import com.thetealover.candidate.api.ratelimit.RateLimitExceededException;
 Add a new private method at the bottom of the class (after `body(...)`):
 
 ```java
-  private MutableHttpResponse<ProblemDetail> rateLimit429(
+  private MutableHttpResponse<ProblemDetailDto> rateLimit429(
       final RateLimitExceededException ex, final String path, final String correlationId) {
 
     final RateLimitDecision decision = ex.decision();
     final long retryAfterSeconds =
         Math.max(1L, Duration.between(Instant.now(), decision.resetAt()).getSeconds());
 
-    final ProblemDetail problemDetail =
-        new ProblemDetail(
-            ProblemDetail.typeFor("rate-limit-exceeded"),
+    final ProblemDetailDto problemDetailDto =
+        new ProblemDetailDto(
+            ProblemDetailDto.typeFor("rate-limit-exceeded"),
             "Rate limit exceeded",
             429,
             "Too many requests. Try again in %d seconds.".formatted(retryAfterSeconds),
@@ -1409,8 +1409,8 @@ Add a new private method at the bottom of the class (after `body(...)`):
             correlationId,
             null);
 
-    return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.TOO_MANY_REQUESTS)
-        .body(problemDetail)
+    return HttpResponse.<ProblemDetailDto>status(io.micronaut.http.HttpStatus.TOO_MANY_REQUESTS)
+        .body(problemDetailDto)
         .contentType(MediaType.APPLICATION_JSON_PROBLEM)
         .header("Retry-After", Long.toString(retryAfterSeconds))
         .header("X-RateLimit-Limit", Integer.toString(decision.limit().capacity()))
@@ -1460,7 +1460,7 @@ package com.thetealover.candidate.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-import com.thetealover.candidate.api.problem.ProblemDetail;
+import com.thetealover.candidate.api.problem.ProblemDetailDto;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -1515,14 +1515,14 @@ class RateLimitIT {
     assertThat(second.getStatus()).isEqualTo(HttpStatus.OK);
 
     try {
-      client.exchange(HttpRequest.GET("/api/v1/candidates"), ProblemDetail.class);
+      client.exchange(HttpRequest.GET("/api/v1/candidates"), ProblemDetailDto.class);
       fail("expected 429");
     } catch (final HttpClientResponseException ex) {
       assertThat(ex.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
       assertThat(ex.getResponse().getContentType().orElseThrow().toString())
           .isEqualTo(MediaType.APPLICATION_JSON_PROBLEM);
 
-      final ProblemDetail body = ex.getResponse().getBody(ProblemDetail.class).orElseThrow();
+      final ProblemDetailDto body = ex.getResponse().getBody(ProblemDetailDto.class).orElseThrow();
       assertThat(body.status()).isEqualTo(429);
       assertThat(body.type().toString()).endsWith("/problems/rate-limit-exceeded");
       assertThat(body.title()).isEqualTo("Rate limit exceeded");
@@ -1621,7 +1621,7 @@ succeeded, the per-IP token is refunded via `Bucket.addTokens(1)` so
 the rejected request doesn't double-bill the client.
 
 **429 response shape (D10 + standard rate-limit headers):** RFC 7807
-`ProblemDetail` body with `type=…/rate-limit-exceeded`, plus
+`ProblemDetailDto` body with `type=…/rate-limit-exceeded`, plus
 `Retry-After` (seconds) and `X-RateLimit-Limit` / `-Remaining`
 (always 0 on a 429) / `-Reset` (epoch seconds) headers. Successful
 responses do not carry the `X-RateLimit-*` triple — extra Bucket4j
