@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+      JSON-formatted logging for the deployed 'dev' environment. Activated via
+      `logger.config: classpath:logback-dev.xml` in application-dev.yml.
+      MDC keys (correlationId, actorId, candidateId) are promoted to top-level
+      fields so they're easy to query in a log aggregator.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <includeMdcKeyName>actorId</includeMdcKeyName>
+            <includeMdcKeyName>candidateId</includeMdcKeyName>
+            <customFields>{"service":"candidate-manager"}</customFields>
+            <timeZone>UTC</timeZone>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.thetealover" level="INFO"/>
+    <logger name="io.micronaut" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="liquibase" level="INFO"/>
+</configuration>

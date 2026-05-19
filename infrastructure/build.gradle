@@ -1,0 +1,95 @@
+// Adapters: JPA entities & repositories, Liquibase, event-publisher impl, Hikari pool.
+// Implements domain ports; depends on `domain` and `application` (for shared types).
+
+plugins {
+    alias(libs.plugins.micronaut.library)
+}
+
+micronaut {
+    version = libs.versions.micronaut.get()
+    processing {
+        incremental = true
+        annotations 'com.thetealover.candidate.*'
+    }
+}
+
+// Suppress classfile-level annotation warnings emitted when the compiler reads
+// micronaut-data-model's compiled classes that reference Jackson annotations not
+// on the annotation-processor classpath. These are third-party artefacts; the
+// warning is harmless but -Werror (inherited from the root build) would fail us.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-Xlint:-classfile'
+}
+
+// Pass DOCKER_HOST to the test JVM so Testcontainers can find the Docker daemon.
+// On macOS with Docker Desktop the socket lives in ~/.docker/run/docker.sock;
+// fall back to /var/run/docker.sock (the standard symlink) when not explicitly set.
+tasks.withType(Test).configureEach {
+    // Propagate Docker socket to the forked test JVM so Testcontainers can find it.
+    // Docker Desktop on macOS exposes two sockets:
+    //   * ~/.docker/run/docker.sock  — CLI proxy (returns 400 to Testcontainers pings)
+    //   * ~/Library/Containers/com.docker.docker/Data/docker.raw.sock — real engine socket
+    // We prefer the real socket and fall back to DOCKER_HOST if set.
+    def userHome = System.getProperty('user.home')
+    def rawSocket = new File(userHome, 'Library/Containers/com.docker.docker/Data/docker.raw.sock')
+    def desktopSocket = new File(userHome, '.docker/run/docker.sock')
+    def dockerHostEnv = System.getenv('DOCKER_HOST')
+    if (dockerHostEnv) {
+        environment 'DOCKER_HOST', dockerHostEnv
+    } else if (rawSocket.exists()) {
+        def socketUrl = "unix://${rawSocket.absolutePath}"
+        environment 'DOCKER_HOST', socketUrl
+    } else if (desktopSocket.exists()) {
+        def socketUrl = "unix://${desktopSocket.absolutePath}"
+        environment 'DOCKER_HOST', socketUrl
+    }
+    // docker-java (bundled in Testcontainers) reads the API version from the
+    // DOCKER_API_VERSION env var or the 'api.version' system property.
+    // Docker Desktop 29.x requires minimum API 1.40; docker-java defaults to 1.32.
+    // Point to the proxy socket which handles version negotiation.
+    environment 'DOCKER_API_VERSION', '1.45'
+    systemProperty 'api.version', '1.45'
+    // Disable Ryuk (the Testcontainers cleanup daemon) to avoid issues with
+    // Docker socket mounting on macOS Docker Desktop.
+    environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
+    // Show stdout/stderr only on failure (set to true locally to debug Testcontainers)
+    testLogging.showStandardStreams = false
+    // Forward ryuk disable flag for CI environments.
+    def ryukDisabled = System.getenv('TESTCONTAINERS_RYUK_DISABLED')
+    if (ryukDisabled) {
+        environment 'TESTCONTAINERS_RYUK_DISABLED', ryukDisabled
+    }
+}
+
+dependencies {
+    api project(':domain')
+    api project(':application')
+
+    // Persistence
+    api libs.micronaut.data.hibernate.jpa
+    api libs.micronaut.jdbc.hikari
+    api libs.jakarta.persistence.api
+
+    // Migrations
+    api libs.micronaut.liquibase
+
+    // Postgres driver — runtime only at this layer
+    runtimeOnly libs.postgresql
+
+    // Lombok must run BEFORE the Micronaut Inject / Data processors so the
+    // generated constructors and fields are visible to Micronaut's AP.
+    compileOnly         libs.lombok
+    annotationProcessor libs.lombok
+    annotationProcessor libs.micronaut.inject.java
+    annotationProcessor libs.micronaut.data.processor
+
+    testCompileOnly         libs.lombok
+    testAnnotationProcessor libs.lombok
+
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.bundles.unit.test
+    testImplementation libs.micronaut.test.junit5
+    testImplementation libs.bundles.testcontainers
+    testRuntimeOnly    libs.junit.platform.launcher
+    testRuntimeOnly    libs.logback.classic
+}

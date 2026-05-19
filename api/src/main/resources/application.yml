@@ -1,0 +1,66 @@
+micronaut:
+  application:
+    name: candidate-manager
+  server:
+    port: ${SERVER_PORT:8080}
+    # Hand requests off from Netty event-loops to virtual threads.
+    thread-selection: AUTO
+  # Blocking executor used by @ExecuteOn(TaskExecutors.BLOCKING) controller methods.
+  # thread-selection: AUTO (above) already routes server I/O through virtual threads.
+  executors:
+    blocking:
+      type: CACHED
+
+datasources:
+  default:
+    # currentSchema is set on the JDBC URL so every new connection's search_path
+    # starts at the app schema. Quoted because the name is hyphenated.
+    url: ${JDBC_URL:`jdbc:postgresql://localhost:5432/canmanager?currentSchema=%22canmanager-ws%22`}
+    schema: canmanager-ws
+    username: ${JDBC_USER:canmanager}
+    password: ${JDBC_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+    dialect: POSTGRES
+    maximum-pool-size: 10
+    minimum-idle: 2
+
+jpa:
+  default:
+    properties:
+      hibernate:
+        # Schema is owned by Liquibase; Hibernate only validates the mapping.
+        hbm2ddl:
+          auto: validate
+        show_sql: false
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+liquibase:
+  enabled: true
+  datasources:
+    default:
+      change-log: classpath:db/changelog/db.changelog-master.yaml
+      # Apply migrations into the app schema; keep the bookkeeping tables there too.
+      default-schema-name: canmanager-ws
+      liquibase-schema-name: canmanager-ws
+
+endpoints:
+  all:
+    sensitive: false
+  health:
+    enabled: true
+    details-visible: ANONYMOUS
+    disk-space:
+      enabled: false
+  liveness:
+    enabled: true
+  readiness:
+    enabled: true
+
+jackson:
+  serialization-inclusion: NON_NULL
+  serialization:
+    write-dates-as-timestamps: false
+  deserialization:
+    fail-on-unknown-properties: true
