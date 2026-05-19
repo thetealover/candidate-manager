@@ -54,10 +54,13 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 - **No `System.out` / `System.err`.** Always SLF4J.
 - **No catch-and-ignore.** Either handle or rethrow with context.
 - **Exceptions for invariant violations are `IllegalArgumentException` / `IllegalStateException`.** Domain-meaningful exceptions are explicit subtypes (`CandidateNotFoundException`, `EmailAlreadyRegisteredException`, etc.) and live in the domain or application module they originate from.
+- **No string concatenation with `+`.** Use `"...%s...".formatted(x)` for runtime assembly; use text blocks for multi-line literals and annotation values (`@Query` JPQL, `@Operation` descriptions). SLF4J `{}` placeholders are not concatenation and are unaffected.
+- **Descriptive variable names — no single-letter or cryptic abbreviations.** Locals, parameters, lambda parameters, and `instanceof X y` pattern binders must use the full noun: `candidate` not `c`, `evaluation` not `r`, `pageable` not `p`, `entity` not `e`, `useCase` not `uc`, `command` not `cmd`. Only loop-counter `i`/`j` and the conventional `ex` for exception parameters are permitted short names.
 - **Spotless must pass before commit.** Run `./gradlew spotlessApply` if needed.
 
 ## Test conventions
 
+- **Nothing in `*/src/main/java` may exist solely to support tests.** No test-only helpers, fakes, fixed clocks, builders, or `VisibleForTesting`-style backdoors in production sources. `testFixtures` source sets are also out — they're still shared test scaffolding. Acceptable alternatives: lambdas inline in tests (e.g. `Clock CLOCK = () -> Instant.parse("...")` against a functional interface), package-private constructors/methods to enable test access, or duplicating a small helper into each test source set. Stdlib equivalents (`java.time.Clock.fixed(...)`) are preferred over any custom wrapper.
 - **Existing tests under `domain/src/test/` are obsolete and must be deleted as the first implementation step.** They were scaffolding; the design docs are the new source of truth for behavior. New tests get written alongside production code.
 - **`Test` suffix for unit tests, `IT` suffix for integration tests.** Integration tests use Testcontainers (`org.testcontainers:postgresql`) and run against a real Postgres container.
 - **Domain tests use no mocks.** The domain has no collaborators that need mocking — its dependencies are pure interfaces (`Clock`, the repository ports), trivial to stub or fake.
@@ -124,6 +127,9 @@ docker compose up --build
 ## What NOT to do in this codebase
 
 - Do not put `@Entity` on a domain class.
+- Do not place test-only helpers in any `src/main/java`. Inline lambdas, package-private access, or stdlib equivalents instead.
+- Do not concatenate strings with `+`. Use `.formatted(...)` or text blocks.
+- Do not introduce one-letter or abbreviated variable names (`c`, `r`, `p`, `e`, `uc`, `cmd`). Use the full noun.
 - Do not import `io.micronaut.*` or `jakarta.persistence.*` in `domain`.
 - Do not use field injection or static service locators.
 - Do not log request/response bodies for candidate endpoints.

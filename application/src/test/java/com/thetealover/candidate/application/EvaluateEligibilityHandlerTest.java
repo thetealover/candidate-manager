@@ -17,8 +17,9 @@ import com.thetealover.candidate.domain.eligibility.EligibilityDecidedEvent;
 import com.thetealover.candidate.domain.eligibility.EligibilityRequestedEvent;
 import com.thetealover.candidate.domain.eligibility.EligibilityRules;
 import com.thetealover.candidate.domain.port.CandidateRepository;
+import com.thetealover.candidate.domain.port.Clock;
 import com.thetealover.candidate.domain.port.EligibilityEventPublisher;
-import com.thetealover.candidate.domain.port.FixedClock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +33,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EvaluateEligibilityHandlerTest {
 
-  private static final FixedClock CLOCK = FixedClock.at("2026-05-18T10:00:00Z");
+  private static final Clock CLOCK = () -> Instant.parse("2026-05-18T10:00:00Z");
 
   @Mock CandidateRepository repository;
   @Mock EligibilityEventPublisher publisher;
 
   @Test
   void evaluates_eligible_candidate_and_publishes_decided_event() {
-    final Candidate c =
+    final Candidate candidate =
         Candidate.register(
             new FullName("Alice", "Anderson"),
             new Email("alice@example.com"),
@@ -48,8 +49,8 @@ class EvaluateEligibilityHandlerTest {
             ProgramLevel.LEVEL_I,
             List.of(),
             CLOCK);
-    c.startVerification();
-    when(repository.findActiveById(any())).thenReturn(Optional.of(c));
+    candidate.startVerification();
+    when(repository.findActiveById(any())).thenReturn(Optional.of(candidate));
 
     // The handler delegates to the inner EligibilityEvaluatorService; test that service directly
     // (the handler's on() method just dispatches to it asynchronously — the async aspect is not
@@ -59,10 +60,10 @@ class EvaluateEligibilityHandlerTest {
             repository, new EligibilityRules(), publisher, CLOCK);
     final UUID correlationId = UUID.randomUUID();
     evaluator.evaluate(
-        new EligibilityRequestedEvent(c.id(), correlationId, "actor-1", CLOCK.instant()));
+        new EligibilityRequestedEvent(candidate.id(), correlationId, "actor-1", CLOCK.instant()));
 
-    assertThat(c.eligibilityStatus()).isEqualTo(EligibilityStatus.ELIGIBLE);
-    verify(repository).save(c);
+    assertThat(candidate.eligibilityStatus()).isEqualTo(EligibilityStatus.ELIGIBLE);
+    verify(repository).save(candidate);
     final ArgumentCaptor<EligibilityDecidedEvent> captor =
         ArgumentCaptor.forClass(EligibilityDecidedEvent.class);
     verify(publisher).publish(captor.capture());

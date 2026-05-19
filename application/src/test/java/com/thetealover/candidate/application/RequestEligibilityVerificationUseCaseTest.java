@@ -14,8 +14,9 @@ import com.thetealover.candidate.domain.candidate.HighestDegree;
 import com.thetealover.candidate.domain.candidate.ProgramLevel;
 import com.thetealover.candidate.domain.eligibility.EligibilityRequestedEvent;
 import com.thetealover.candidate.domain.port.CandidateRepository;
+import com.thetealover.candidate.domain.port.Clock;
 import com.thetealover.candidate.domain.port.EligibilityEventPublisher;
-import com.thetealover.candidate.domain.port.FixedClock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -30,14 +31,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class RequestEligibilityVerificationUseCaseTest {
 
-  private static final FixedClock CLOCK = FixedClock.at("2026-05-18T10:00:00Z");
+  private static final Clock CLOCK = () -> Instant.parse("2026-05-18T10:00:00Z");
 
   @Mock CandidateRepository repository;
   @Mock EligibilityEventPublisher publisher;
 
   @Test
   void transitions_to_in_progress_and_publishes_event() {
-    final Candidate c =
+    final Candidate candidate =
         Candidate.register(
             new FullName("Alice", "Anderson"),
             new Email("alice@example.com"),
@@ -46,15 +47,15 @@ class RequestEligibilityVerificationUseCaseTest {
             ProgramLevel.LEVEL_I,
             List.of(),
             CLOCK);
-    when(repository.findActiveById(any())).thenReturn(Optional.of(c));
+    when(repository.findActiveById(any())).thenReturn(Optional.of(candidate));
 
-    final var uc = new RequestEligibilityVerificationUseCase(repository, publisher, CLOCK);
+    final var useCase = new RequestEligibilityVerificationUseCase(repository, publisher, CLOCK);
     final UUID correlationId = UUID.randomUUID();
-    uc.execute(c.id(), correlationId, "actor-123");
+    useCase.execute(candidate.id(), correlationId, "actor-123");
 
-    Assertions.assertThat(c.eligibilityStatus())
+    Assertions.assertThat(candidate.eligibilityStatus())
         .isEqualTo(EligibilityStatus.VERIFICATION_IN_PROGRESS);
-    verify(repository).save(c);
+    verify(repository).save(candidate);
     final ArgumentCaptor<EligibilityRequestedEvent> captor =
         ArgumentCaptor.forClass(EligibilityRequestedEvent.class);
     verify(publisher).publish(captor.capture());

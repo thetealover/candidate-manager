@@ -29,10 +29,10 @@ public class RequestEligibilityVerificationUseCase {
 
   @Transactional
   public void execute(final CandidateId id, final UUID correlationId, final String actorId) {
-    final Candidate c =
+    final Candidate candidate =
         repository.findActiveById(id).orElseThrow(() -> new CandidateNotFoundException(id));
-    c.startVerification();
-    repository.save(c);
+    candidate.startVerification();
+    repository.save(candidate);
     publisher.publish(new EligibilityRequestedEvent(id, correlationId, actorId, clock.instant()));
   }
 }

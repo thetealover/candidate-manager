@@ -9,9 +9,9 @@ class RuleEvaluationTest {
 
   @Test
   void carries_outcome_and_reason() {
-    final RuleEvaluation r = new RuleEvaluation(EligibilityOutcome.ELIGIBLE, "all good");
-    assertThat(r.outcome()).isEqualTo(EligibilityOutcome.ELIGIBLE);
-    assertThat(r.reason()).isEqualTo("all good");
+    final RuleEvaluation evaluation = new RuleEvaluation(EligibilityOutcome.ELIGIBLE, "all good");
+    assertThat(evaluation.outcome()).isEqualTo(EligibilityOutcome.ELIGIBLE);
+    assertThat(evaluation.reason()).isEqualTo("all good");
   }
 
   @Test

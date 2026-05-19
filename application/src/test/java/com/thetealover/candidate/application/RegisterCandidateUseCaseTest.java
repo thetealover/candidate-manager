@@ -16,7 +16,8 @@ import com.thetealover.candidate.domain.candidate.FullName;
 import com.thetealover.candidate.domain.candidate.HighestDegree;
 import com.thetealover.candidate.domain.candidate.ProgramLevel;
 import com.thetealover.candidate.domain.port.CandidateRepository;
-import com.thetealover.candidate.domain.port.FixedClock;
+import com.thetealover.candidate.domain.port.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class RegisterCandidateUseCaseTest {
 
-  private static final FixedClock CLOCK = FixedClock.at("2026-05-18T10:00:00Z");
+  private static final Clock CLOCK = () -> Instant.parse("2026-05-18T10:00:00Z");
 
   @Mock CandidateRepository repository;
 
@@ -44,8 +45,8 @@ class RegisterCandidateUseCaseTest {
   @Test
   void registers_and_saves_when_email_is_free() {
     when(repository.existsActiveByEmail(any())).thenReturn(false);
-    final RegisterCandidateUseCase uc = new RegisterCandidateUseCase(repository, CLOCK);
-    final Candidate created = uc.execute(cmd());
+    final RegisterCandidateUseCase useCase = new RegisterCandidateUseCase(repository, CLOCK);
+    final Candidate created = useCase.execute(cmd());
     assertThat(created.email().value()).isEqualTo("alice@example.com");
     verify(repository).save(created);
   }
@@ -53,8 +54,9 @@ class RegisterCandidateUseCaseTest {
   @Test
   void rejects_when_email_is_already_active() {
     when(repository.existsActiveByEmail(any())).thenReturn(true);
-    final RegisterCandidateUseCase uc = new RegisterCandidateUseCase(repository, CLOCK);
-    assertThatThrownBy(() -> uc.execute(cmd())).isInstanceOf(EmailAlreadyRegisteredException.class);
+    final RegisterCandidateUseCase useCase = new RegisterCandidateUseCase(repository, CLOCK);
+    assertThatThrownBy(() -> useCase.execute(cmd()))
+        .isInstanceOf(EmailAlreadyRegisteredException.class);
     verify(repository, never()).save(any());
   }
 }
