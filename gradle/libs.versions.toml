@@ -17,6 +17,9 @@ assertj        = "3.26.3"
 testcontainers = "1.21.0"
 awaitility     = "4.2.2"
 
+# Boilerplate reduction
+lombok = "1.18.34"
+
 [plugins]
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }
 micronaut-library     = { id = "io.micronaut.library",     version.ref = "micronautPlugin" }
@@ -24,6 +27,9 @@ micronaut-aot         = { id = "io.micronaut.aot",         version.ref = "micron
 spotless              = { id = "com.diffplug.spotless",    version.ref = "spotless" }
 
 [libraries]
+# --- Boilerplate reduction ---------------------------------------------------
+lombok                   = { module = "org.projectlombok:lombok",                      version.ref = "lombok" }
+
 # --- Logging -----------------------------------------------------------------
 slf4j-api                = { module = "org.slf4j:slf4j-api",                           version.ref = "slf4j" }
 logback-classic          = { module = "ch.qos.logback:logback-classic" }

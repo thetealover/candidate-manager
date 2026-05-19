@@ -14,8 +14,8 @@ import io.micronaut.scheduling.annotation.Async;
 import io.micronaut.transaction.TransactionDefinition;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
 /**
@@ -26,15 +26,10 @@ import org.slf4j.MDC;
  * to be closed before the async thread starts executing.
  */
 @Singleton
+@RequiredArgsConstructor
 public class EvaluateEligibilityHandler {
 
-  private static final Logger LOG = LoggerFactory.getLogger(EvaluateEligibilityHandler.class);
-
   private final EligibilityEvaluatorService evaluator;
-
-  public EvaluateEligibilityHandler(final EligibilityEvaluatorService evaluator) {
-    this.evaluator = evaluator;
-  }
 
   @EventListener
   @Async("blocking")
@@ -47,23 +42,14 @@ public class EvaluateEligibilityHandler {
    * blocking executor thread dispatched by {@code @Async} above).
    */
   @Singleton
+  @RequiredArgsConstructor
+  @Slf4j
   public static class EligibilityEvaluatorService {
 
     private final CandidateRepository repository;
     private final EligibilityRules rules;
     private final EligibilityEventPublisher publisher;
     private final Clock clock;
-
-    public EligibilityEvaluatorService(
-        final CandidateRepository repository,
-        final EligibilityRules rules,
-        final EligibilityEventPublisher publisher,
-        final Clock clock) {
-      this.repository = repository;
-      this.rules = rules;
-      this.publisher = publisher;
-      this.clock = clock;
-    }
 
     @Transactional(propagation = TransactionDefinition.Propagation.REQUIRES_NEW)
     public void evaluate(final EligibilityRequestedEvent event) {
@@ -83,7 +69,7 @@ public class EvaluateEligibilityHandler {
         try {
           evaluation = rules.evaluate(candidate);
         } catch (final RuntimeException ex) {
-          LOG.error("eligibility evaluation threw; recording FAILED", ex);
+          log.error("eligibility evaluation threw; recording FAILED", ex);
           evaluation =
               new RuleEvaluation(
                   EligibilityOutcome.FAILED, "Evaluation failed: %s".formatted(ex.getMessage()));

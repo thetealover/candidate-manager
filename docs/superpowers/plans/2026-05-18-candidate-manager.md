@@ -4807,6 +4807,18 @@ The domain port stays untouched, so this is a swap, not a refactor.
 3. **P2** — Terraform VPC + EKS + RDS + IRSA reference IaC under `infra/terraform/` (stretch — not necessarily applied).
 
 Time budget is the binding constraint.
+
+## D11 — Lombok scoped to `@RequiredArgsConstructor` + `@Slf4j`
+
+**Decision:** Lombok is permitted on bean/service classes in `application` / `infrastructure` / `api`, restricted to `@RequiredArgsConstructor` and `@Slf4j` (with `@Slf4j(topic = "…")` where a custom logger name is needed). Any other Lombok annotation (`@Data`, `@Value`, `@Builder`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@NoArgsConstructor`, `@EqualsAndHashCode`, `@ToString`) is forbidden. `domain/` stays Lombok-free.
+
+**Why:** Constructor boilerplate on services with 3+ injected ports (worst case `CandidateController` had 12 lines of pure assignment) and the repeated `private static final Logger LOG = LoggerFactory.getLogger(…)` declaration paid no rent. Records cover DTOs/commands/value objects but cannot replace `@Singleton`+`@Transactional`+`@ExecuteOn` services because Micronaut's compile-time AOP generates a subclass-proxy and records are `final`.
+
+**Cost:** The Micronaut Gradle plugin emits "Detected use of Lombok, which is strongly discouraged" on every build. The plugin auto-orders the annotation processors (Lombok before the Micronaut Inject processor) so the AP-ordering gotcha is handled for us. Tests confirm Lombok + Micronaut compile-time DI + Hibernate + Testcontainers all cooperate.
+
+**Why not records-as-services:** Spiked first. Records can't be Micronaut beans for any class that uses `@Transactional`, `@Async`, `@Validated`, or `@ExecuteOn` because the framework needs to compile-time-subclass them and `final record` blocks that. The workaround (interface + record impl) costs more lines than the explicit constructor it would replace.
+
+**Why not Micronaut Sourcegen:** The Gradle plugin's suggested alternative. Younger Labs project, less mainstream coverage than Lombok, and would still be unfamiliar to most reviewers. Deferred — revisit if Lombok ever causes a build break.
 ```
 
 - [ ] **Step 3: Commit**

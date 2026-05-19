@@ -13,16 +13,14 @@ import io.micronaut.http.server.exceptions.ExceptionHandler;
 import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolationException;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
 @Produces(MediaType.APPLICATION_JSON_PROBLEM)
 @Singleton
+@Slf4j
 @Requires(classes = {Throwable.class, ExceptionHandler.class})
 public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable, HttpResponse<?>> {
-
-  private static final Logger LOG = LoggerFactory.getLogger(ProblemDetailExceptionHandler.class);
 
   @Override
   @SuppressWarnings("rawtypes")
@@ -41,7 +39,7 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           null);
     }
     if (ex instanceof EmailAlreadyRegisteredException emailConflict) {
-      LOG.warn("email conflict on registration: {}", emailConflict.email().value());
+      log.warn("email conflict on registration: {}", emailConflict.email().value());
       return body(
           409,
           "email-already-registered",
@@ -124,7 +122,7 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           null);
     }
 
-    LOG.error("unhandled exception", ex);
+    log.error("unhandled exception", ex);
     return body(
         500,
         "internal-error",

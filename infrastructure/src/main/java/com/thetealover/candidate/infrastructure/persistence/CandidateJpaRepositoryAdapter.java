@@ -12,15 +12,13 @@ import com.thetealover.candidate.infrastructure.persistence.mapper.CandidateMapp
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Singleton
+@RequiredArgsConstructor
 public class CandidateJpaRepositoryAdapter implements CandidateRepository {
 
   private final CandidateMicronautRepository repo;
-
-  public CandidateJpaRepositoryAdapter(final CandidateMicronautRepository repo) {
-    this.repo = repo;
-  }
 
   @Override
   public Optional<Candidate> findActiveById(final CandidateId id) {

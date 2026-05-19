@@ -7,15 +7,13 @@ import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 @Filter("/api/**")
+@Slf4j(topic = "http")
 public class RequestContextFilter implements HttpServerFilter {
-
-  private static final Logger LOG = LoggerFactory.getLogger("http");
 
   private static final String CORRELATION_HEADER = "X-Correlation-Id";
   private static final String ACTOR_HEADER = "X-Actor-Id";
@@ -34,7 +32,7 @@ public class RequestContextFilter implements HttpServerFilter {
     MDC.put("correlationId", correlationId);
     if (actorId != null) MDC.put("actorId", actorId);
 
-    LOG.debug(
+    log.debug(
         "http.request.received method={} path={} query={} actorId={}",
         request.getMethod(),
         request.getPath(),
@@ -46,7 +44,7 @@ public class RequestContextFilter implements HttpServerFilter {
         response -> {
           response.header(CORRELATION_HEADER, correlationId);
           final long durationMs = (System.nanoTime() - started) / 1_000_000;
-          LOG.info(
+          log.info(
               "http.request.completed method={} path={} status={} durationMs={}",
               request.getMethod(),
               request.getPath(),

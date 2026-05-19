@@ -76,8 +76,15 @@ dependencies {
     // Postgres driver — runtime only at this layer
     runtimeOnly libs.postgresql
 
+    // Lombok must run BEFORE the Micronaut Inject / Data processors so the
+    // generated constructors and fields are visible to Micronaut's AP.
+    compileOnly         libs.lombok
+    annotationProcessor libs.lombok
     annotationProcessor libs.micronaut.inject.java
     annotationProcessor libs.micronaut.data.processor
+
+    testCompileOnly         libs.lombok
+    testAnnotationProcessor libs.lombok
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.bundles.unit.test

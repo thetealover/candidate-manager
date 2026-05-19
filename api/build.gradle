@@ -29,7 +29,10 @@ micronaut {
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
+// The OpenAPI -A flag is only consumed by the OpenAPI processor on the main
+// source set; scoping it to compileJava avoids -Werror failing compileTestJava
+// once Lombok is on the test annotation-processor path (no consumer there).
+tasks.named('compileJava').configure {
     options.compilerArgs.add(
             "-Amicronaut.openapi.views.spec=swagger-ui.enabled=true,redoc.enabled=true,rapidoc.enabled=true"
     )
@@ -73,6 +76,9 @@ dependencies {
     annotationProcessor libs.micronaut.openapi
     implementation      libs.swagger.annotations
 
+    // Lombok: AP ordering is handled automatically by the Micronaut Gradle plugin.
+    compileOnly         libs.lombok
+    annotationProcessor libs.lombok
     // Validation + DI processors
     annotationProcessor libs.micronaut.inject.java
     annotationProcessor libs.micronaut.validation.processor
@@ -88,5 +94,7 @@ dependencies {
     testImplementation libs.micronaut.http.client
     testImplementation libs.bundles.testcontainers
     testImplementation libs.awaitility
+    testCompileOnly         libs.lombok
+    testAnnotationProcessor libs.lombok
     testRuntimeOnly    libs.junit.platform.launcher
 }

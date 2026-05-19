@@ -6,15 +6,13 @@ import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
 import com.thetealover.candidate.domain.port.CandidateRepository;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Singleton
+@RequiredArgsConstructor
 public class GetCandidateUseCase {
 
   private final CandidateRepository repository;
-
-  public GetCandidateUseCase(final CandidateRepository repository) {
-    this.repository = repository;
-  }
 
   @Transactional
   public Candidate execute(final CandidateId id) {

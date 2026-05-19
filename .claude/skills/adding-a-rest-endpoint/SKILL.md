@@ -20,7 +20,8 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
    - **Every field carries a Jakarta Bean Validation constraint.** `@NotBlank`, `@NotNull`, `@Email`, `@Past`, `@Size`, `@Min`/`@Max`. Use `@Valid` on nested records and on collection types whose elements need validation.
    - Add `@Schema(description = "...", example = "...")` for OpenAPI.
 3. **Controller method**:
-   - Class-level `@Controller("/api/v1/<resource>")`, `@Validated`, `@ExecuteOn(TaskExecutors.BLOCKING)`.
+   - Class-level `@Controller("/api/v1/<resource>")`, `@Validated`, `@ExecuteOn(TaskExecutors.BLOCKING)`, `@RequiredArgsConstructor`. Use cases declared as `private final` fields — Lombok generates the constructor.
+   - Classes that log get `@Slf4j` (use `log.info(...)` etc.). For loggers under a non-class-name topic (e.g. the request filter uses `http`), use `@Slf4j(topic = "http")`.
    - The HTTP-verb annotation (`@Post`/`@Get`/`@Put`/`@Delete`) sets `consumes` / `produces = MediaType.APPLICATION_JSON` where applicable.
    - Body parameters carry `@Body @Valid`. Path parameters: `@PathVariable`. Query parameters: `@QueryValue(defaultValue = "...")`.
    - Required headers (e.g. `X-Actor-Id`) use `@Header(value = "…", defaultValue = "")` + an `isBlank()` check that throws `MissingHeaderException`. (Do not use `@Header(required = true)` — the resulting Micronaut exception doesn't reach our handler with the right shape.)
@@ -56,7 +57,7 @@ Not for: business logic (lives in the use case), persistence queries (in the JPA
 
 ## Conventions baked in
 
-- **Class-level defaults:** `@Controller("/api/v1/<resource>") + @Validated + @ExecuteOn(TaskExecutors.BLOCKING)`. JPA work always runs on the blocking virtual-thread pool, never on Netty event loops.
+- **Class-level defaults:** `@Controller("/api/v1/<resource>") + @Validated + @ExecuteOn(TaskExecutors.BLOCKING) + @RequiredArgsConstructor`. JPA work always runs on the blocking virtual-thread pool, never on Netty event loops.
 - **No PII bodies in logs.** Candidate endpoints carry email and date-of-birth. The central request filter logs method/path/status/durationMs only — **never** add `body` to a controller log line.
 - **MDC keys:** `correlationId` (set by the filter), `actorId` (when present), `candidateId` (push/remove in the controller method).
 - **DTO immutability:** records, not classes. `@Serdeable` is the Micronaut equivalent of `@JsonDeserialize` — keep it on every request and response record.

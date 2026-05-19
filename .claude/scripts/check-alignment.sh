@@ -34,8 +34,8 @@ add() { violations="${violations}- $1"$'\n'; }
 # --- Module dependency boundaries ---
 case "$file" in
   */domain/src/main/java/*)
-    grep -qE '^import (io\.micronaut\.|jakarta\.persistence\.|com\.fasterxml\.jackson\.|liquibase\.|jakarta\.validation\.)' "$file" 2>/dev/null \
-      && add "domain must not import framework packages (io.micronaut.*, jakarta.persistence.*, jakarta.validation.*, jackson, liquibase)"
+    grep -qE '^import (io\.micronaut\.|jakarta\.persistence\.|com\.fasterxml\.jackson\.|liquibase\.|jakarta\.validation\.|lombok\.)' "$file" 2>/dev/null \
+      && add "domain must not import framework packages (io.micronaut.*, jakarta.persistence.*, jakarta.validation.*, jackson, liquibase, lombok)"
     grep -qE '^import com\.thetealover\.candidate\.(application|infrastructure|api)\.' "$file" 2>/dev/null \
       && add "domain must not import from application / infrastructure / api"
     grep -qE '^[[:space:]]*@Entity' "$file" 2>/dev/null \
@@ -60,8 +60,12 @@ esac
 # --- Java-wide rules ---
 case "$file" in
   *.java)
-    grep -qE '^import lombok\.' "$file" 2>/dev/null \
-      && add "Lombok is forbidden — use records + explicit code"
+    # Lombok allow-list: only @RequiredArgsConstructor and @Slf4j are permitted
+    # in application/infrastructure/api. Anything else (@Data, @Value, @Builder,
+    # @Getter, @Setter, @AllArgsConstructor, @NoArgsConstructor, @EqualsAndHashCode,
+    # @ToString) is drift.
+    grep -qE '^import lombok\.(Data|Value|Builder|Getter|Setter|AllArgsConstructor|NoArgsConstructor|EqualsAndHashCode|ToString)' "$file" 2>/dev/null \
+      && add "Lombok scope is @RequiredArgsConstructor + @Slf4j only — other Lombok annotations are forbidden"
     grep -qE '\bSystem\.(out|err)\.' "$file" 2>/dev/null \
       && add "use SLF4J — System.out / System.err not allowed"
     grep -qE '\.printStackTrace\(' "$file" 2>/dev/null \
