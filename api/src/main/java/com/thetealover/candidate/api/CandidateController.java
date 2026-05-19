@@ -7,13 +7,14 @@ import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
 import com.thetealover.candidate.api.problem.ProblemDetail;
 import com.thetealover.candidate.application.RequestEligibilityVerificationUseCase;
-import com.thetealover.candidate.application.SoftDeleteCandidateUseCase;
 import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
 import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateCommand;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateUseCase;
 import com.thetealover.candidate.application.candidate.search.SearchCandidatesCommand;
 import com.thetealover.candidate.application.candidate.search.SearchCandidatesUseCase;
+import com.thetealover.candidate.application.candidate.softdelete.SoftDeleteCandidateCommand;
+import com.thetealover.candidate.application.candidate.softdelete.SoftDeleteCandidateUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.DateOfBirth;
@@ -211,7 +212,7 @@ public class CandidateController {
           @Header(value = "X-Actor-Id", defaultValue = "")
           final String actorId) {
     if (actorId.isBlank()) throw new MissingHeaderException("X-Actor-Id");
-    softDelete.execute(CandidateId.of(id));
+    softDelete.execute(new SoftDeleteCandidateCommand(CandidateId.of(id)));
     return HttpResponse.noContent();
   }
 }
