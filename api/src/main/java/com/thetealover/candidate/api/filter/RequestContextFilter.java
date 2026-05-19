@@ -1,6 +1,7 @@
 package com.thetealover.candidate.api.filter;
 
 import io.micronaut.core.async.publisher.Publishers;
+import io.micronaut.core.order.Ordered;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
@@ -15,8 +16,23 @@ import org.slf4j.MDC;
 @Slf4j(topic = "http")
 public class RequestContextFilter implements HttpServerFilter {
 
+  /** Run before any other filter so MDC + correlationId are set up first. */
+  public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
+
+  @Override
+  public int getOrder() {
+    return ORDER;
+  }
+
   private static final String CORRELATION_HEADER = "X-Correlation-Id";
   private static final String ACTOR_HEADER = "X-Actor-Id";
+
+  /**
+   * Request attribute key for the resolved correlationId. Stashed here so downstream code
+   * (exception handlers in particular) can read it without depending on MDC, which doesn't
+   * propagate across the Netty IO → blocking executor thread switch.
+   */
+  public static final CharSequence CORRELATION_ID_ATTR = "correlationId";
 
   @Override
   public Publisher<MutableHttpResponse<?>> doFilter(
@@ -29,6 +45,7 @@ public class RequestContextFilter implements HttpServerFilter {
             : UUID.randomUUID().toString();
     final String actorId = request.getHeaders().get(ACTOR_HEADER);
 
+    request.setAttribute(CORRELATION_ID_ATTR, correlationId);
     MDC.put("correlationId", correlationId);
     if (actorId != null) MDC.put("actorId", actorId);
 

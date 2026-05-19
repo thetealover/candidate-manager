@@ -64,3 +64,20 @@ jackson:
     write-dates-as-timestamps: false
   deserialization:
     fail-on-unknown-properties: true
+
+rate-limit:
+  enabled: true
+  per-ip:
+    read:
+      capacity: 120
+      refill-period: 1m
+    write:
+      capacity: 30
+      refill-period: 1m
+  per-actor:
+    write:
+      capacity: 10
+      refill-period: 1m
+  cache:
+    max-size: 100000
+    expire-after-access: 10m

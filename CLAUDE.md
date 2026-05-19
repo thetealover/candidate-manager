@@ -59,7 +59,7 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 ## Coding conventions
 
 - **Immutability by default.** Prefer `record` for value objects, DTOs, and events. Use `List.copyOf` / `Map.copyOf` for defensive copies.
-- **Lombok scoped to `@RequiredArgsConstructor` + `@Slf4j`** on bean/service classes in `application` / `infrastructure` / `api`. Any other Lombok annotation (`@Data`, `@Builder`, `@Value`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@NoArgsConstructor`, `@EqualsAndHashCode`, etc.) is forbidden. **Domain stays Lombok-free** — `domain/` must not import `lombok.*`. Records, mappers, JPA entities, and DTOs stay explicit. The Micronaut Gradle plugin emits a "strongly discouraged" notice on each build, but tests prove Lombok and Micronaut's compile-time AOP cooperate on this codebase. The plugin auto-orders the annotation processors. This trade-off will be documented as a `D…` entry when `DECISIONS.md` is authored in Phase 8.
+- **Lombok scoped to `@RequiredArgsConstructor` + `@Slf4j`** on bean/service classes in `application` / `infrastructure` / `api`. Any other Lombok annotation (`@Data`, `@Builder`, `@Value`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@NoArgsConstructor`, `@EqualsAndHashCode`, etc.) is forbidden. **Domain stays Lombok-free** — `domain/` must not import `lombok.*`. Records, mappers, JPA entities, and DTOs stay explicit. The Micronaut Gradle plugin emits a "strongly discouraged" notice on each build, but tests prove Lombok and Micronaut's compile-time AOP cooperate on this codebase. The plugin auto-orders the annotation processors. See `DECISIONS.md` §D15 for the full rationale.
 - **Constructor injection only.** No `@Inject` on fields. No setter injection.
 - **No `null` returns from collection-returning methods.** Return empty collections.
 - **`final` on locals and parameters by default** (already enforced by `-parameters -Xlint:all -Werror`).
@@ -112,6 +112,11 @@ public class <Resource>Controller { … }
   try { … } finally { MDC.remove("candidateId"); }
   ```
 - Required headers (`X-Actor-Id`) use `@Header(value = "…", defaultValue = "")` + a `isBlank()` check that throws `MissingHeaderException`. Not `@Header(required = true)`.
+- **Rate limiting** is enforced by `RateLimitFilter` (`api/filter/`,
+  order 20) using the `RateLimitStore` port in `api/ratelimit/`. New
+  endpoints automatically inherit per-IP limiting via the `/api/**`
+  selector; add a path entry to `RateLimitFilter.actorIdIfActorEndpoint`
+  if the endpoint also needs per-actor limiting. See `DECISIONS.md` §D21.
 
 ## Test conventions
 
@@ -193,10 +198,11 @@ docker compose up --build
 - Do not add new dependencies without recording why in `DECISIONS.md` or an ADR.
 - Do not introduce a separate "audit service" or extra modules — scope is one microservice.
 
-## Scope and priorities (in order)
+## Scope and priorities (in order, all delivered)
 
-1. **P0** — A complete, correctly-architected service that satisfies every functional and non-functional requirement in the brief.
-2. **P1** — GitHub Actions CI: build + test on every push, plus Dependabot for dependency updates.
-3. **P2** — AWS / EKS stretch goal: Terraform module under `infra/terraform/` describing VPC, EKS, RDS, IAM/IRSA, ECR. Reference IaC (not necessarily applied), clearly documented.
+1. **P0 — Service.** A complete, correctly-architected microservice satisfying every functional and non-functional requirement in the brief.
+2. **P1 — CI + docs.** GitHub Actions build/test workflow, Dependabot, `README.md`, and `DECISIONS.md`.
+3. **P2 — AWS deployment considerations.** Terraform reference module under `infra/terraform/` covering ECR, VPC, RDS (Postgres 16), EKS, IRSA, and Secrets Manager — the brief's "AWS deployment considerations documented (EKS, Secrets Manager)" bonus, delivered as working (validated) HCL rather than prose. Not applied — the `module` blocks are commented so `terraform plan` against an empty state is safe. See `DECISIONS.md` §D19 + §D20.
+4. **P3 — Rate limiting.** Bucket4j-backed `HttpServerFilter` on `/api/**` with per-IP + per-actor dimensions, RFC 7807 + `Retry-After` + `X-RateLimit-*` on 429, fail-open on store errors. Brief's bonus *"Rate limiting on API endpoints"*. See `DECISIONS.md` §D21.
 
-Do not start a lower priority until the higher one is solid. The 6–8 hour budget in the brief is real.
+The 6–8 hour budget in the brief is the binding constraint. Lower priorities were not started until higher ones were solid.
