@@ -59,9 +59,8 @@ class RateLimitFilterTest {
   void setUp() {
     final RateLimitConfig config = new RateLimitConfig();
     config.setEnabled(true);
-    config.getPerIp().setRead(new RateLimitConfig.Limit(120, Duration.ofMinutes(1)));
-    config.getPerIp().setWrite(new RateLimitConfig.Limit(30, Duration.ofMinutes(1)));
-    config.getPerActor().setWrite(new RateLimitConfig.Limit(10, Duration.ofMinutes(1)));
+    // Production defaults (120/30/10 per minute) match the test expectations,
+    // so no per-field override is needed here.
     filter = new RateLimitFilter(store, config);
 
     lenient()

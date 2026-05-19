@@ -7,15 +7,19 @@ import java.time.Duration;
 /**
  * Binds the {@code rate-limit.*} block from application.yml. Holds three {@link RateLimit} specs
  * (per-IP read, per-IP write, per-actor write) plus Caffeine cache sizing.
+ *
+ * <p>Each leaf node (per-ip.read, per-ip.write, per-actor.write) is its own static {@link Limit}
+ * subclass annotated {@code @ConfigurationProperties}, so Micronaut binds the nested YAML keys onto
+ * the bean. A bare {@code Limit} field on the parent would not be recursed into.
  */
 @ConfigurationProperties("rate-limit")
 @Requires(property = "rate-limit.enabled", value = "true")
 public class RateLimitConfig {
 
   private boolean enabled = true;
-  private PerIp perIp = new PerIp();
-  private PerActor perActor = new PerActor();
-  private Cache cache = new Cache();
+  private final PerIp perIp = new PerIp();
+  private final PerActor perActor = new PerActor();
+  private final Cache cache = new Cache();
 
   public boolean isEnabled() {
     return enabled;
@@ -29,24 +33,12 @@ public class RateLimitConfig {
     return perIp;
   }
 
-  public void setPerIp(final PerIp perIp) {
-    this.perIp = perIp;
-  }
-
   public PerActor getPerActor() {
     return perActor;
   }
 
-  public void setPerActor(final PerActor perActor) {
-    this.perActor = perActor;
-  }
-
   public Cache getCache() {
     return cache;
-  }
-
-  public void setCache(final Cache cache) {
-    this.cache = cache;
   }
 
   public RateLimit ipRead() {
@@ -63,64 +55,45 @@ public class RateLimitConfig {
 
   @ConfigurationProperties("per-ip")
   public static class PerIp {
-    private Limit read = new Limit(120, Duration.ofMinutes(1));
-    private Limit write = new Limit(30, Duration.ofMinutes(1));
+    private final Read read = new Read();
+    private final Write write = new Write();
 
-    public Limit getRead() {
+    public Read getRead() {
       return read;
     }
 
-    public void setRead(final Limit read) {
-      this.read = read;
-    }
-
-    public Limit getWrite() {
+    public Write getWrite() {
       return write;
     }
 
-    public void setWrite(final Limit write) {
-      this.write = write;
+    @ConfigurationProperties("read")
+    public static class Read extends Limit {
+      public Read() {
+        super(120, Duration.ofMinutes(1));
+      }
+    }
+
+    @ConfigurationProperties("write")
+    public static class Write extends Limit {
+      public Write() {
+        super(30, Duration.ofMinutes(1));
+      }
     }
   }
 
   @ConfigurationProperties("per-actor")
   public static class PerActor {
-    private Limit write = new Limit(10, Duration.ofMinutes(1));
+    private final Write write = new Write();
 
-    public Limit getWrite() {
+    public Write getWrite() {
       return write;
     }
 
-    public void setWrite(final Limit write) {
-      this.write = write;
-    }
-  }
-
-  public static class Limit {
-    private int capacity;
-    private Duration refillPeriod;
-
-    public Limit() {}
-
-    public Limit(final int capacity, final Duration refillPeriod) {
-      this.capacity = capacity;
-      this.refillPeriod = refillPeriod;
-    }
-
-    public int getCapacity() {
-      return capacity;
-    }
-
-    public void setCapacity(final int capacity) {
-      this.capacity = capacity;
-    }
-
-    public Duration getRefillPeriod() {
-      return refillPeriod;
-    }
-
-    public void setRefillPeriod(final Duration refillPeriod) {
-      this.refillPeriod = refillPeriod;
+    @ConfigurationProperties("write")
+    public static class Write extends Limit {
+      public Write() {
+        super(10, Duration.ofMinutes(1));
+      }
     }
   }
 
@@ -143,6 +116,36 @@ public class RateLimitConfig {
 
     public void setExpireAfterAccess(final Duration expireAfterAccess) {
       this.expireAfterAccess = expireAfterAccess;
+    }
+  }
+
+  /**
+   * Shared base for per-IP / per-actor limit leaves. Subclassed once per concrete leaf so each gets
+   * its own {@code @ConfigurationProperties} binding key.
+   */
+  public static class Limit {
+    private int capacity;
+    private Duration refillPeriod;
+
+    protected Limit(final int capacity, final Duration refillPeriod) {
+      this.capacity = capacity;
+      this.refillPeriod = refillPeriod;
+    }
+
+    public int getCapacity() {
+      return capacity;
+    }
+
+    public void setCapacity(final int capacity) {
+      this.capacity = capacity;
+    }
+
+    public Duration getRefillPeriod() {
+      return refillPeriod;
+    }
+
+    public void setRefillPeriod(final Duration refillPeriod) {
+      this.refillPeriod = refillPeriod;
     }
   }
 }
