@@ -36,7 +36,7 @@ Skills live in `.claude/skills/<name>/SKILL.md` and travel with the repo.
 - **Spotless** with `googleJavaFormat` for code formatting.
 - **SLF4J + Logback**. JSON encoder (`logstash-logback-encoder`) in the deployed `dev` environment; plain pattern layout in `local` and `test` for readable terminal output.
 - **JUnit 5 + Mockito** + **AssertJ** for tests. **Testcontainers** for integration tests.
-- Classic blocking style on **virtual threads** (`executors.blocking.type: virtual`).
+- Virtual threads on the request path via `micronaut.server.thread-selection: AUTO`. Controllers use `@ExecuteOn(TaskExecutors.BLOCKING)` so JPA work runs off the Netty event loop. The blocking pool is currently `CACHED`; promoting it to a true virtual-thread executor is deferred — see `DECISIONS.md` §D6.
 - **PostgreSQL 16**.
 
 ## Module dependency rules (enforced by review)
@@ -104,7 +104,7 @@ Every controller in this codebase carries the same class-level annotation triple
 public class <Resource>Controller { … }
 ```
 
-- `@ExecuteOn(TaskExecutors.BLOCKING)` runs every method on the virtual-thread blocking pool. JPA work must never run on a Netty event loop.
+- `@ExecuteOn(TaskExecutors.BLOCKING)` runs every method on the named blocking pool (off the Netty event loop). JPA work must never run on a Netty event loop. See `DECISIONS.md` §D6 for the current blocking-pool config and the deferred virtual-threaded variant.
 - When a controller method takes a candidate id, push it into MDC inside a `try/finally`:
 
   ```java
