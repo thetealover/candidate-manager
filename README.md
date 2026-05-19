@@ -83,6 +83,11 @@ Three Micronaut environments:
 
 Activate via the `MICRONAUT_ENVIRONMENTS` env var.
 
+**Rate limiting** is configured under the top-level `rate-limit.*` block in
+`application.yml` (per-IP read/write, per-actor write, Caffeine cache
+sizing). Disable by setting `rate-limit.enabled: false`. See
+`DECISIONS.md` §D20.
+
 ## Architecture decisions
 
 See [`DECISIONS.md`](DECISIONS.md) for the 19 locked-in trade-offs (hexagonal
@@ -111,4 +116,3 @@ If the budget were larger, in order of payoff:
   (`DECISIONS.md` §D6).
 - Finish the P2 Terraform reference IaC (VPC + EKS + RDS + IRSA + ECR) and
   a deploy workflow on top of the existing CI.
-- Rate limiting (Bucket4j + a Micronaut server filter) on the public endpoints.

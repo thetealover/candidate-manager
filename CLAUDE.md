@@ -112,6 +112,11 @@ public class <Resource>Controller { … }
   try { … } finally { MDC.remove("candidateId"); }
   ```
 - Required headers (`X-Actor-Id`) use `@Header(value = "…", defaultValue = "")` + a `isBlank()` check that throws `MissingHeaderException`. Not `@Header(required = true)`.
+- **Rate limiting** is enforced by `RateLimitFilter` (`api/filter/`,
+  order 20) using the `RateLimitStore` port in `api/ratelimit/`. New
+  endpoints automatically inherit per-IP limiting via the `/api/**`
+  selector; add a path entry to `RateLimitFilter.actorIdIfActorEndpoint`
+  if the endpoint also needs per-actor limiting. See `DECISIONS.md` §D20.
 
 ## Test conventions
 
