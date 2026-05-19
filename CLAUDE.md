@@ -112,6 +112,11 @@ public class <Resource>Controller { … }
   try { … } finally { MDC.remove("candidateId"); }
   ```
 - Required headers (`X-Actor-Id`) use `@Header(value = "…", defaultValue = "")` + a `isBlank()` check that throws `MissingHeaderException`. Not `@Header(required = true)`.
+- **Rate limiting** is enforced by `RateLimitFilter` (`api/filter/`,
+  order 20) using the `RateLimitStore` port in `api/ratelimit/`. New
+  endpoints automatically inherit per-IP limiting via the `/api/**`
+  selector; add a path entry to `RateLimitFilter.actorIdIfActorEndpoint`
+  if the endpoint also needs per-actor limiting. See `DECISIONS.md` §D21.
 
 ## Test conventions
 
@@ -198,5 +203,6 @@ docker compose up --build
 1. **P0 — Service.** A complete, correctly-architected microservice satisfying every functional and non-functional requirement in the brief.
 2. **P1 — CI + docs.** GitHub Actions build/test workflow, Dependabot, `README.md`, and `DECISIONS.md`.
 3. **P2 — AWS deployment considerations.** Terraform reference module under `infra/terraform/` covering ECR, VPC, RDS (Postgres 16), EKS, IRSA, and Secrets Manager — the brief's "AWS deployment considerations documented (EKS, Secrets Manager)" bonus, delivered as working (validated) HCL rather than prose. Not applied — the `module` blocks are commented so `terraform plan` against an empty state is safe. See `DECISIONS.md` §D19 + §D20.
+4. **P3 — Rate limiting.** Bucket4j-backed `HttpServerFilter` on `/api/**` with per-IP + per-actor dimensions, RFC 7807 + `Retry-After` + `X-RateLimit-*` on 429, fail-open on store errors. Brief's bonus *"Rate limiting on API endpoints"*. See `DECISIONS.md` §D21.
 
 The 6–8 hour budget in the brief is the binding constraint. Lower priorities were not started until higher ones were solid.

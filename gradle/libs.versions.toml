@@ -20,6 +20,9 @@ awaitility     = "4.2.2"
 # Boilerplate reduction
 lombok = "1.18.34"
 
+bucket4j = "8.14.0"
+caffeine = "3.1.8"
+
 [plugins]
 micronaut-application = { id = "io.micronaut.application", version.ref = "micronautPlugin" }
 micronaut-library     = { id = "io.micronaut.library",     version.ref = "micronautPlugin" }
@@ -72,6 +75,10 @@ micronaut-test-junit5        = { module = "io.micronaut.test:micronaut-test-juni
 testcontainers-postgresql    = { module = "org.testcontainers:postgresql",             version.ref = "testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter",          version.ref = "testcontainers" }
 awaitility                   = { module = "org.awaitility:awaitility",                 version.ref = "awaitility" }
+
+# --- Rate limiting -----------------------------------------------------------
+bucket4j-core = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+caffeine      = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 
 [bundles]
 # Common unit-test toolkit (JUnit 5 + Mockito + AssertJ)
