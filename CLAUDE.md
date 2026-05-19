@@ -75,7 +75,7 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 | Suffix | Module | Purpose |
 |---|---|---|
 | `…UseCase` | `application` | Synchronous orchestration class (e.g. `RegisterCandidateUseCase`). |
-| `…Command` | `application` | Immutable input record for a write use case (e.g. `RegisterCandidateCommand`). |
+| `…Command` | `application` | Immutable input record for a use case (e.g. `RegisterCandidateCommand`). Every use case has one — reads included. |
 | `…Handler` | `application` | `@EventListener` consuming a domain event (e.g. `EvaluateEligibilityHandler`). |
 | `…JpaEntity` | `infrastructure/persistence/jpa` | JPA-annotated entity (e.g. `CandidateJpaEntity`). |
 | `…MicronautRepository` | `infrastructure/persistence` | Micronaut Data interface extending `CrudRepository` with `@Query` methods. |
