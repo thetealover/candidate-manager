@@ -10,22 +10,15 @@ import com.thetealover.candidate.domain.port.EligibilityEventPublisher;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Singleton
+@RequiredArgsConstructor
 public class RequestEligibilityVerificationUseCase {
 
   private final CandidateRepository repository;
   private final EligibilityEventPublisher publisher;
   private final Clock clock;
-
-  public RequestEligibilityVerificationUseCase(
-      final CandidateRepository repository,
-      final EligibilityEventPublisher publisher,
-      final Clock clock) {
-    this.repository = repository;
-    this.publisher = publisher;
-    this.clock = clock;
-  }
 
   @Transactional
   public void execute(final CandidateId id, final UUID correlationId, final String actorId) {

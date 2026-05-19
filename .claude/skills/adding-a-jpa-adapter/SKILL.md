@@ -41,8 +41,8 @@ infrastructure/persistence/
    - Interface with `@Repository` extending `CrudRepository<<JpaEntity>, <IdType>>`.
    - Custom queries via `@Query(...)` with text blocks for the JPQL. **All multi-line JPQL is a text block, not concatenated strings.**
 4. **Port adapter** alongside:
-   - `@Singleton public class <Aggregate>JpaRepositoryAdapter implements <DomainPort>`.
-   - Constructor-injects the Micronaut Data repository.
+   - `@Singleton @RequiredArgsConstructor public class <Aggregate>JpaRepositoryAdapter implements <DomainPort>`.
+   - Declare the Micronaut Data repository as a `private final` field — Lombok generates the constructor.
    - Methods map domain ↔ JPA via `<Aggregate>Mapper`.
 5. **Testcontainers IT** under `infrastructure/src/test/java/.../<Aggregate>JpaRepositoryAdapterIT.java`:
    - `@MicronautTest(transactional = false)`, `@Container static PostgreSQLContainer<?>`, `@Property` to wire the JDBC URL.
@@ -62,13 +62,10 @@ infrastructure/persistence/
 
 ```java
 @Singleton
+@RequiredArgsConstructor
 public class CandidateJpaRepositoryAdapter implements CandidateRepository {
 
   private final CandidateMicronautRepository repository;
-
-  public CandidateJpaRepositoryAdapter(final CandidateMicronautRepository repository) {
-    this.repository = repository;
-  }
 
   @Override
   public Optional<Candidate> findActiveById(final CandidateId id) {
@@ -114,7 +111,7 @@ The `candidates` table uses `deleted_at IS NULL` as the "active" filter:
 - [ ] JPA entity is in `infrastructure/persistence/jpa/`, **not** in `domain`.
 - [ ] Mapper is `public final class … { private …Mapper() {} }` with `public static` methods only.
 - [ ] JPQL inside `@Query` uses text blocks, never `+` concat.
-- [ ] Adapter is `@Singleton`, constructor-injected, implements the domain port.
+- [ ] Adapter is `@Singleton @RequiredArgsConstructor`, fields are `private final`, no hand-written constructor.
 - [ ] Adapter test is Testcontainers-backed, asserts port behavior, and runs against the real Liquibase schema.
 - [ ] No `repo`, `e`, `c` short variable names — use `repository`, `entity`, `candidate`.
 - [ ] `./gradlew :infrastructure:test :infrastructure:spotlessApply` is green.

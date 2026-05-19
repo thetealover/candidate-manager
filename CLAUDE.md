@@ -59,7 +59,7 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 ## Coding conventions
 
 - **Immutability by default.** Prefer `record` for value objects, DTOs, and events. Use `List.copyOf` / `Map.copyOf` for defensive copies.
-- **No Lombok.** Records and explicit code only.
+- **Lombok scoped to `@RequiredArgsConstructor` + `@Slf4j`** on bean/service classes in `application` / `infrastructure` / `api`. Any other Lombok annotation (`@Data`, `@Builder`, `@Value`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@NoArgsConstructor`, `@EqualsAndHashCode`, etc.) is forbidden. **Domain stays Lombok-free** — `domain/` must not import `lombok.*`. Records, mappers, JPA entities, and DTOs stay explicit. The Micronaut Gradle plugin emits a "strongly discouraged" notice on each build, but tests prove Lombok and Micronaut's compile-time AOP cooperate on this codebase. The plugin auto-orders the annotation processors. This trade-off will be documented as a `D…` entry when `DECISIONS.md` is authored in Phase 8.
 - **Constructor injection only.** No `@Inject` on fields. No setter injection.
 - **No `null` returns from collection-returning methods.** Return empty collections.
 - **`final` on locals and parameters by default** (already enforced by `-parameters -Xlint:all -Werror`).
@@ -87,7 +87,7 @@ When a new class fits one of these roles, use the established suffix — don't i
 
 ## Mapper shape
 
-Mappers are plain Java — no MapStruct, no Lombok:
+Mappers are plain Java — no MapStruct, no Lombok (`@RequiredArgsConstructor`/`@Slf4j` are allowed elsewhere but make no sense on a stateless static-method class):
 
 - `public final class <Aggregate>Mapper { private <Aggregate>Mapper() {} … }` (final + private no-arg constructor).
 - Only `public static` methods. Two by convention: `toJpa(<DomainAggregate>)` and `toDomain(<JpaEntity>)`.

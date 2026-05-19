@@ -46,12 +46,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 
 @Tag(name = "Candidates", description = "Candidate registration and eligibility verification.")
 @Controller("/api/v1/candidates")
 @Validated
 @ExecuteOn(TaskExecutors.BLOCKING)
+@RequiredArgsConstructor
 public class CandidateController {
 
   private final RegisterCandidateUseCase register;
@@ -59,19 +61,6 @@ public class CandidateController {
   private final SearchCandidatesUseCase search;
   private final SoftDeleteCandidateUseCase softDelete;
   private final RequestEligibilityVerificationUseCase requestEligibility;
-
-  public CandidateController(
-      final RegisterCandidateUseCase register,
-      final GetCandidateUseCase get,
-      final SearchCandidatesUseCase search,
-      final SoftDeleteCandidateUseCase softDelete,
-      final RequestEligibilityVerificationUseCase requestEligibility) {
-    this.register = register;
-    this.get = get;
-    this.search = search;
-    this.softDelete = softDelete;
-    this.requestEligibility = requestEligibility;
-  }
 
   @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
   @Operation(

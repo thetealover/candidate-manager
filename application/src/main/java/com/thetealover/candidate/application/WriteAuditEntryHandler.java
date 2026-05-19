@@ -7,15 +7,13 @@ import io.micronaut.runtime.event.annotation.EventListener;
 import io.micronaut.transaction.annotation.Transactional;
 import jakarta.inject.Singleton;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 
 @Singleton
+@RequiredArgsConstructor
 public class WriteAuditEntryHandler {
 
   private final EligibilityAuditRepository auditRepository;
-
-  public WriteAuditEntryHandler(final EligibilityAuditRepository auditRepository) {
-    this.auditRepository = auditRepository;
-  }
 
   @EventListener
   @Transactional

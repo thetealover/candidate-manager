@@ -18,8 +18,8 @@ Not for: REST controllers (api module), JPA adapters (infrastructure module).
 1. **Define the input shape**, if needed.
    - For a write operation, create an immutable `…Command` record alongside the use case (`RegisterCandidateCommand`, `RequestEligibilityCommand`).
    - For a read operation, take primitive parameters or a domain id directly.
-2. **Create the class** with `@Singleton` (from `jakarta.inject`, not `io.micronaut.*`).
-3. **Inject ports through the constructor.** No field injection, no static lookup. Mark every field `private final`.
+2. **Create the class** with `@Singleton` (from `jakarta.inject`, not `io.micronaut.*`) and `@RequiredArgsConstructor` (from `lombok`).
+3. **Declare ports as `private final` fields.** Lombok generates the all-args constructor at compile time. No field injection, no static lookup, no hand-written constructor.
 4. **Mark the entry method `@Transactional`** (`jakarta.transaction.Transactional`) for any method that writes through `CandidateRepository` or `EligibilityAuditRepository`. Read-only `get`/`search` methods don't need it.
 5. **Throw domain-meaningful exceptions** on business failures (`EmailAlreadyRegisteredException`, `CandidateNotFoundException`). Don't catch port-layer exceptions to wrap them.
 6. **Publish events through the `EligibilityEventPublisher` port**, never through Micronaut's `ApplicationEventPublisher` directly. The infrastructure adapter implements the port.
@@ -46,17 +46,14 @@ import com.thetealover.candidate.domain.port.CandidateRepository;
 import com.thetealover.candidate.domain.port.Clock;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 
 @Singleton
+@RequiredArgsConstructor
 public class RegisterCandidateUseCase {
 
   private final CandidateRepository repository;
   private final Clock clock;
-
-  public RegisterCandidateUseCase(final CandidateRepository repository, final Clock clock) {
-    this.repository = repository;
-    this.clock = clock;
-  }
 
   @Transactional
   public Candidate execute(final RegisterCandidateCommand command) {
@@ -127,7 +124,7 @@ class RegisterCandidateUseCaseTest {
 
 ## Checklist before commit
 
-- [ ] Class is `@Singleton`, constructor-injected, fields are `private final`.
+- [ ] Class is `@Singleton` + `@RequiredArgsConstructor`, fields are `private final`, no hand-written constructor.
 - [ ] Write methods have `@Transactional`; read methods do not.
 - [ ] No `jakarta.persistence.*` / `io.micronaut.http.*` imports.
 - [ ] All parameter names are full nouns (`command`, not `cmd`; `candidate`, not `c`).
@@ -139,7 +136,7 @@ class RegisterCandidateUseCaseTest {
 
 | Mistake | Fix |
 |---|---|
-| `@Inject` on a field | Use constructor injection only. |
+| `@Inject` on a field | Use `@RequiredArgsConstructor` on the class so Lombok generates the constructor. |
 | Use case enforces a business rule (`if candidate.age < 18 then …`) | Move the rule into the domain (`Candidate.register(...)` or `EligibilityRules`). Use cases orchestrate. |
 | `cmd` as the parameter name | Expand to `command`. Same goes for `uc`, `c`, `r`, `p`, `e`. |
 | Calling `applicationEventPublisher.publishEvent(...)` from a use case | Publish through the `EligibilityEventPublisher` port. The Micronaut adapter lives in `infrastructure`. |

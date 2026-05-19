@@ -23,9 +23,14 @@ dependencies {
     api libs.jakarta.transaction.api
     api libs.slf4j.api
 
+    // Lombok: AP ordering is handled automatically by the Micronaut Gradle plugin.
+    compileOnly         libs.lombok
+    annotationProcessor libs.lombok
     annotationProcessor libs.micronaut.inject.java
 
     testImplementation platform(libs.junit.bom)
     testImplementation libs.bundles.unit.test
+    testCompileOnly         libs.lombok
+    testAnnotationProcessor libs.lombok
     testRuntimeOnly    libs.junit.platform.launcher
 }
