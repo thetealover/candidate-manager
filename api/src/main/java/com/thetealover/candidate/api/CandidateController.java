@@ -7,12 +7,13 @@ import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
 import com.thetealover.candidate.api.problem.ProblemDetail;
 import com.thetealover.candidate.application.RequestEligibilityVerificationUseCase;
-import com.thetealover.candidate.application.SearchCandidatesUseCase;
 import com.thetealover.candidate.application.SoftDeleteCandidateUseCase;
 import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
 import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateCommand;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateUseCase;
+import com.thetealover.candidate.application.candidate.search.SearchCandidatesCommand;
+import com.thetealover.candidate.application.candidate.search.SearchCandidatesUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.DateOfBirth;
@@ -139,7 +140,9 @@ public class CandidateController {
         status.isBlank() ? null : EligibilityStatus.valueOf(status);
     final ProgramLevel programFilter = program.isBlank() ? null : ProgramLevel.valueOf(program);
     return PageResponse.ofCandidates(
-        search.execute(new SearchCriteria(statusFilter, programFilter), new Pageable(page, size)));
+        search.execute(
+            new SearchCandidatesCommand(
+                new SearchCriteria(statusFilter, programFilter), new Pageable(page, size))));
   }
 
   @Put("/{id}/eligibility")
