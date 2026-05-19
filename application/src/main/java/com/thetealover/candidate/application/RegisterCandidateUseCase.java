@@ -16,18 +16,18 @@ public class RegisterCandidateUseCase {
   private final Clock clock;
 
   @Transactional
-  public Candidate execute(final RegisterCandidateCommand cmd) {
-    if (repository.existsActiveByEmail(cmd.email())) {
-      throw new EmailAlreadyRegisteredException(cmd.email());
+  public Candidate execute(final RegisterCandidateCommand command) {
+    if (repository.existsActiveByEmail(command.email())) {
+      throw new EmailAlreadyRegisteredException(command.email());
     }
     final Candidate candidate =
         Candidate.register(
-            cmd.fullName(),
-            cmd.email(),
-            cmd.dateOfBirth(),
-            cmd.educationBackground(),
-            cmd.programLevel(),
-            cmd.priorPasses(),
+            command.fullName(),
+            command.email(),
+            command.dateOfBirth(),
+            command.educationBackground(),
+            command.programLevel(),
+            command.priorPasses(),
             clock);
     repository.save(candidate);
     return candidate;
