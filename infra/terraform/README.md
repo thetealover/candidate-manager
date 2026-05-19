@@ -1,8 +1,17 @@
 # Terraform reference module
 
-This is a reference IaC module describing how the candidate-manager service
-would be deployed to AWS. It is **not applied** in this repository — it is
-documentation in code form. The deployment path is:
+Satisfies the brief's bonus item *"AWS deployment considerations
+documented (EKS, Secrets Manager)"* as working Terraform rather than prose.
+**Not applied** in this repository — `terraform fmt -check` and
+`terraform validate` both pass, but `terraform apply` is intentionally
+never run.
+
+Companion document: [`DECISIONS.md` §D20](../../DECISIONS.md) covers the
+*why* (IRSA over instance-profile credentials, community modules over
+hand-rolled HCL, which resources are concrete vs. commented). This README
+covers the *what*.
+
+The deployment path is:
 
 1. ECR repository for the service image.
 2. VPC with public + private subnets across 2 AZs.

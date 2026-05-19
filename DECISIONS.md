@@ -494,19 +494,99 @@ Dependabot. Skip until needed.
 
 ## D19 — Bonus scope and priority order
 
-In order, time budget permitting:
+In order, all delivered:
 
-1. **P0 — Complete service.** Done. End-to-end working microservice with
-   functional + non-functional requirements per the brief. Verified by
+1. **P0 — Complete service.** End-to-end working microservice meeting every
+   functional + non-functional requirement in the brief. Verified by
    `docker compose up --build` plus the unit + IT + e2e test suites.
-2. **P1 — GitHub Actions build + test + Dependabot + this document.** In
-   progress (this DECISIONS.md + Tasks 32–34 of the implementation plan).
-3. **P2 — Terraform reference IaC** under `infra/terraform/` for VPC + EKS
-   + RDS + IRSA + ECR. Stretch — meant to demonstrate the deployment shape,
-   not necessarily applied.
+2. **P1 — GitHub Actions build/test workflow, Dependabot, README, and this
+   document.** Brief's bonus *"GitHub Actions CI pipeline configuration"* +
+   non-functional *"README with setup instructions, architecture decision
+   records, and trade-offs"*.
+3. **P2 — Terraform reference module** under `infra/terraform/`. Brief's
+   bonus *"AWS deployment considerations documented (EKS, Secrets Manager)"*,
+   delivered as working (validated) HCL — see D20 for the full deployment
+   model.
 
-The time budget is the binding constraint. Lower priorities are not started
-until higher ones are solid.
+The 6–8 hour budget in the brief was the binding constraint. Lower
+priorities were not started until higher ones were solid.
+
+**Bonus points checklist (from the brief):**
+
+| Bonus | Status | Where |
+|---|---|---|
+| Event-driven audit trail | ✅ Done | D2 — `EligibilityDecidedEvent` → `WriteAuditEntryHandler` writes the audit row |
+| Rate limiting on API endpoints | ✗ Not done | Deferred-work table below; out of scope this pass |
+| Health check + readiness/liveness probes | ✅ Done | `application.yml` enables `endpoints.health/liveness/readiness` |
+| GitHub Actions CI pipeline | ✅ Done | `.github/workflows/build.yml` (P1 above) |
+| AWS deployment considerations documented (EKS, Secrets Manager) | ✅ Done | D20 + `infra/terraform/` (P2 above) |
+
+---
+
+## D20 — AWS deployment model: EKS + IRSA + Secrets Manager (reference, not applied)
+
+**Decision:** Document the AWS deploy target as a Terraform module under
+`infra/terraform/` rather than as prose. ECR repository and the Secrets
+Manager secret are provisioned as concrete resources; VPC (2 AZs,
+public + private subnets), RDS PostgreSQL 16, EKS 1.30 (managed node
+group), and the IRSA role are present as commented community-module
+references (`terraform-aws-modules/{vpc,rds,eks,iam}/aws`). The module is
+**not applied** in this repository — applying it costs money and is
+outside the brief's scope.
+
+**Deploy path:**
+
+1. CI workflow builds the service Docker image (`api/Dockerfile`) and
+   `docker push`es it to the ECR repo at
+   `aws_ecr_repository.service.repository_url`.
+2. A Kubernetes `Deployment` in the EKS cluster pulls that image; pod
+   spec sets `serviceAccountName` to the IRSA-bound service account.
+3. IRSA grants the pod's service account
+   `secretsmanager:GetSecretValue` on
+   `aws_secretsmanager_secret.db_credentials.arn` and **nothing else**
+   (least privilege).
+4. The pod reads the JSON secret on startup, hydrates the
+   `JDBC_URL` / `JDBC_USER` / `JDBC_PASSWORD` env vars expected by
+   `application.yml`, and Micronaut connects to RDS via the
+   private-subnet security group.
+5. An ALB (Kubernetes `Service` of type `LoadBalancer` + AWS Load Balancer
+   Controller) fronts the pod.
+
+**Why Terraform over a paragraph:** Reviewers parse working IaC faster
+than prose, and a validated module forces the deploy shape to be
+internally consistent (variable wiring, output references, provider
+constraints). The commented-out community-module blocks describe the
+production shape faithfully; uncommenting them is a one-step path to a
+real deploy with a `dev.tfvars` in hand.
+
+**Why these resources concrete (ECR + Secrets Manager) and the rest
+commented:**
+
+- **ECR + Secrets Manager** cost effectively nothing at rest and a real
+  `terraform plan` against an empty state cleanly shows the deploy
+  surface. Useful as a working artifact.
+- **VPC + RDS + EKS + IRSA** would attempt non-trivial spend if
+  uncommented (NAT gateway, RDS instance, EKS control plane hourly
+  charge). Commented modules document the shape without that risk.
+
+**Why IRSA over instance-profile credentials:** Pod-level identity
+(`ServiceAccount` annotated with `eks.amazonaws.com/role-arn`) gives a
+distinct IAM role per workload. The node IAM role can't be tightly
+scoped to a single secret without breaking other workloads on the same
+node; IRSA can. This matches the principal-of-least-privilege expectation
+the brief implicitly sets by calling out Secrets Manager.
+
+**Why VPC + RDS with `terraform-aws-modules/*`** instead of hand-rolled
+resources: the community modules are the de facto standard, vetted, and
+maintain forward compatibility across AWS provider versions. Hand-rolled
+HCL for a VPC alone is ~150 lines of low-value boilerplate.
+
+**Trade-off — not applied:** The module isn't connected to a live AWS
+account in this repo. `terraform fmt -check` and `terraform validate`
+both pass; `terraform apply` is intentionally never run. Reviewers can
+read the plan output by running `terraform init && terraform plan`
+locally; the only resources the plan would create are the ECR repo and
+the Secrets Manager secret.
 
 ---
 
@@ -516,7 +596,7 @@ until higher ones are solid.
 |------|---------------------|--------------|
 | DB outbox for crash-safe event delivery | `infrastructure/persistence/eligibility` + Liquibase | D2 trade-off; covered by D3. |
 | Real authentication (replacing `X-Actor-Id`) | `api/` filter + DI | Out of scope per the brief; D9 documents the seam. |
-| OpenTelemetry `traceparent` propagation | `api/` filter + executor wrapper | Correlation-id is the local equivalent; OTel ties into the deploy stack which is P2. |
+| OpenTelemetry `traceparent` propagation | `api/` filter + executor wrapper | Correlation-id covers in-process tracing; OTel would tie into the AWS deploy stack documented in D20 (X-Ray or self-hosted Tempo). |
 | Rate limiting (Bucket4j) on public endpoints | `api/` filter | No traffic model to size against in this scope. |
 | Recovery job for `VERIFICATION_IN_PROGRESS` stragglers | `infrastructure/` scheduled bean | Pairs with D3; lands together if the outbox does. |
 | Virtual-thread executor for `executors.blocking` | `application.yml` + custom `@Named("blocking")` bean | D6 documents the gap; AUTO routing covers the common case for now. |
