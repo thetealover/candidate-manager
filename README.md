@@ -83,11 +83,29 @@ Three Micronaut environments:
 
 Activate via the `MICRONAUT_ENVIRONMENTS` env var.
 
+## AWS deployment (reference IaC)
+
+Terraform module under [`infra/terraform/`](infra/terraform/) documents the
+AWS deploy target: ECR + Secrets Manager as concrete resources, VPC + RDS
+PostgreSQL 16 + EKS 1.30 + IRSA as commented `terraform-aws-modules/*`
+references. **Not applied** — it's a working sketch of the deploy shape, not
+a live deploy. `terraform fmt -check` and `terraform validate` both pass.
+
+Deploy path in one paragraph: CI pushes the service image to ECR; an EKS
+Deployment pulls it; pod's service account is bound via IRSA to an IAM role
+whose only permission is `secretsmanager:GetSecretValue` on the
+candidate-manager DB secret; the pod reads the secret on startup and
+connects to RDS in the private subnet. See
+[`DECISIONS.md` §D20](DECISIONS.md) for the full model and
+[`infra/terraform/README.md`](infra/terraform/README.md) for the
+file-by-file breakdown.
+
 ## Architecture decisions
 
-See [`DECISIONS.md`](DECISIONS.md) for the 19 locked-in trade-offs (hexagonal
-architecture, async eligibility flow, three-layer validation, soft delete, etc.)
-and a deferred-work table for items left out of scope.
+See [`DECISIONS.md`](DECISIONS.md) for the 20 locked-in trade-offs (hexagonal
+architecture, async eligibility flow, three-layer validation, soft delete,
+AWS deployment model, etc.) and a deferred-work table for items left out of
+scope.
 
 ## Documentation
 
@@ -105,10 +123,15 @@ If the budget were larger, in order of payoff:
   eligibility verification (`DECISIONS.md` §D3).
 - Recovery job or admin endpoint for candidates stranded in
   `VERIFICATION_IN_PROGRESS`.
+- Rate limiting (Bucket4j + a Micronaut server filter) on the public
+  endpoints — the one bonus point from the brief that wasn't worth
+  spending budget on without a traffic model to size against.
 - Wire OpenTelemetry so the correlation id propagates as a `traceparent`
   header upstream.
 - Promote the blocking executor to a true virtual-thread pool
   (`DECISIONS.md` §D6).
-- Finish the P2 Terraform reference IaC (VPC + EKS + RDS + IRSA + ECR) and
-  a deploy workflow on top of the existing CI.
-- Rate limiting (Bucket4j + a Micronaut server filter) on the public endpoints.
+- Uncomment the VPC / RDS / EKS / IRSA blocks in
+  [`infra/terraform/main.tf`](infra/terraform/main.tf) and run an actual
+  `terraform apply` against a real AWS account, then add a deploy job to
+  `.github/workflows/build.yml` that pushes the image to ECR and rolls the
+  EKS deployment.
