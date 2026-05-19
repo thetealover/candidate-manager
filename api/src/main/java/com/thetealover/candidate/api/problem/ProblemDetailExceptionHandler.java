@@ -67,17 +67,17 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           missingHeader.getMessage(),
           path,
           correlationId,
-          List.of(new FieldError(missingHeader.headerName(), "must not be missing")));
+          List.of(new FieldErrorDto(missingHeader.headerName(), "must not be missing")));
     }
     if (ex instanceof RateLimitExceededException rateLimitExceeded) {
       return rateLimit429(rateLimitExceeded, path, correlationId);
     }
     if (ex instanceof ConstraintViolationException constraintViolation) {
-      final List<FieldError> errors =
+      final List<FieldErrorDto> errors =
           constraintViolation.getConstraintViolations().stream()
               .map(
                   violation ->
-                      new FieldError(
+                      new FieldErrorDto(
                           violation.getPropertyPath().toString(), violation.getMessage()))
               .toList();
       return body(
@@ -102,7 +102,7 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           "Request body contains an unknown field.",
           path,
           correlationId,
-          List.of(new FieldError(field, "unknown field")));
+          List.of(new FieldErrorDto(field, "unknown field")));
     }
     if (ex instanceof IllegalArgumentException illegalArgument) {
       return body(
@@ -146,32 +146,32 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
         null);
   }
 
-  private MutableHttpResponse<ProblemDetail> body(
+  private MutableHttpResponse<ProblemDetailDto> body(
       final int status,
       final String slug,
       final String title,
       final String detail,
       final String instance,
       final String correlationId,
-      final List<FieldError> errors) {
-    final ProblemDetail problemDetail =
-        new ProblemDetail(
-            ProblemDetail.typeFor(slug), title, status, detail, instance, correlationId, errors);
-    return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.valueOf(status))
-        .body(problemDetail)
+      final List<FieldErrorDto> errors) {
+    final ProblemDetailDto problemDetailDto =
+        new ProblemDetailDto(
+            ProblemDetailDto.typeFor(slug), title, status, detail, instance, correlationId, errors);
+    return HttpResponse.<ProblemDetailDto>status(io.micronaut.http.HttpStatus.valueOf(status))
+        .body(problemDetailDto)
         .contentType(MediaType.APPLICATION_JSON_PROBLEM);
   }
 
-  private MutableHttpResponse<ProblemDetail> rateLimit429(
+  private MutableHttpResponse<ProblemDetailDto> rateLimit429(
       final RateLimitExceededException ex, final String path, final String correlationId) {
 
     final RateLimitDecision decision = ex.decision();
     final long retryAfterSeconds =
         Math.max(1L, Duration.between(Instant.now(), decision.resetAt()).getSeconds());
 
-    final ProblemDetail problemDetail =
-        new ProblemDetail(
-            ProblemDetail.typeFor("rate-limit-exceeded"),
+    final ProblemDetailDto problemDetailDto =
+        new ProblemDetailDto(
+            ProblemDetailDto.typeFor("rate-limit-exceeded"),
             "Rate limit exceeded",
             429,
             "Too many requests. Try again in %d seconds.".formatted(retryAfterSeconds),
@@ -179,8 +179,8 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
             correlationId,
             null);
 
-    return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.TOO_MANY_REQUESTS)
-        .body(problemDetail)
+    return HttpResponse.<ProblemDetailDto>status(io.micronaut.http.HttpStatus.TOO_MANY_REQUESTS)
+        .body(problemDetailDto)
         .contentType(MediaType.APPLICATION_JSON_PROBLEM)
         .header("Retry-After", Long.toString(retryAfterSeconds))
         .header("X-RateLimit-Limit", Integer.toString(decision.limit().capacity()))

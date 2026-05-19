@@ -35,7 +35,7 @@ the client needs for debugging:
 HTTP request
   → RequestContextFilter   (order 10: correlation id, actor id, MDC, endpoint logging)
   → RateLimitFilter        (order 20: per-IP + per-actor token-bucket check)
-  → CandidateController    (existing)
+  → CandidateControllerV1    (existing)
 ```
 
 Storage is hidden behind a `RateLimitStore` port. The in-memory adapter

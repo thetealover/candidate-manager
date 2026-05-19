@@ -2,7 +2,7 @@ package com.thetealover.candidate.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.thetealover.candidate.api.dto.CandidateResponse;
+import com.thetealover.candidate.api.dto.CandidateDto;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
@@ -56,14 +56,13 @@ class CandidateRegistrationIT {
     final var createResponse =
         client
             .toBlocking()
-            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
 
     assertThat(createResponse.status().getCode()).isEqualTo(201);
     final var location = createResponse.header(HttpHeaders.LOCATION);
     assertThat(location).startsWith("/api/v1/candidates/");
 
-    final var fetched =
-        client.toBlocking().retrieve(HttpRequest.GET(location), CandidateResponse.class);
+    final var fetched = client.toBlocking().retrieve(HttpRequest.GET(location), CandidateDto.class);
     assertThat(fetched.firstName()).isEqualTo("Alice");
     assertThat(fetched.eligibilityStatus().name()).isEqualTo("NOT_VERIFIED");
   }

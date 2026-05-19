@@ -1,11 +1,8 @@
 package com.thetealover.candidate.api;
 
-import com.thetealover.candidate.api.dto.CandidateRegistrationRequest;
-import com.thetealover.candidate.api.dto.CandidateResponse;
-import com.thetealover.candidate.api.dto.PageResponse;
-import com.thetealover.candidate.api.dto.PriorExamPassDto;
+import com.thetealover.candidate.api.dto.*;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
-import com.thetealover.candidate.api.problem.ProblemDetail;
+import com.thetealover.candidate.api.problem.ProblemDetailDto;
 import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
 import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateCommand;
@@ -58,7 +55,7 @@ import org.slf4j.MDC;
 @Validated
 @ExecuteOn(TaskExecutors.BLOCKING)
 @RequiredArgsConstructor
-public class CandidateController {
+public class CandidateControllerV1 {
 
   private final RegisterCandidateUseCase register;
   private final GetCandidateUseCase get;
@@ -76,17 +73,17 @@ public class CandidateController {
   @ApiResponse(
       responseCode = "201",
       description = "Candidate created; Location header points at the new resource.",
-      content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+      content = @Content(schema = @Schema(implementation = CandidateDto.class)))
   @ApiResponse(
       responseCode = "400",
       description = "Validation failure (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   @ApiResponse(
       responseCode = "409",
       description = "Email already registered to an active candidate (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  public HttpResponse<CandidateResponse> create(
-      @Body @Valid final CandidateRegistrationRequest body) {
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
+  public HttpResponse<CandidateDto> create(
+      @Body @Valid final CandidateRegistrationRequestDto body) {
     final RegisterCandidateCommand command =
         new RegisterCandidateCommand(
             new FullName(body.firstName(), body.lastName()),
@@ -102,23 +99,23 @@ public class CandidateController {
     final Candidate candidate = register.execute(command);
     return HttpResponse.created(
             URI.create("/api/v1/candidates/%s".formatted(candidate.id().value())))
-        .body(CandidateResponse.from(candidate));
+        .body(CandidateDto.from(candidate));
   }
 
   @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
   @Operation(summary = "Get a candidate by id")
   @ApiResponse(
       responseCode = "200",
-      content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+      content = @Content(schema = @Schema(implementation = CandidateDto.class)))
   @ApiResponse(
       responseCode = "404",
       description = "Unknown id or soft-deleted candidate.",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-  public CandidateResponse byId(
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
+  public CandidateDto byId(
       @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id) {
     MDC.put("candidateId", id.toString());
     try {
-      return CandidateResponse.from(get.execute(new GetCandidateCommand(CandidateId.of(id))));
+      return CandidateDto.from(get.execute(new GetCandidateCommand(CandidateId.of(id))));
     } finally {
       MDC.remove("candidateId");
     }
@@ -127,7 +124,7 @@ public class CandidateController {
   @Get(produces = MediaType.APPLICATION_JSON)
   @Operation(summary = "Search active candidates with filtering and pagination")
   @ApiResponse(responseCode = "200", description = "A page of matching candidates.")
-  public PageResponse<CandidateResponse> list(
+  public PageResponseDto<CandidateDto> list(
       @Parameter(description = "Filter by eligibility status.") @QueryValue(defaultValue = "")
           final String status,
       @Parameter(description = "Filter by program level.") @QueryValue(defaultValue = "")
@@ -141,7 +138,7 @@ public class CandidateController {
     final EligibilityStatus statusFilter =
         status.isBlank() ? null : EligibilityStatus.valueOf(status);
     final ProgramLevel programFilter = program.isBlank() ? null : ProgramLevel.valueOf(program);
-    return PageResponse.ofCandidates(
+    return PageResponseDto.ofCandidates(
         search.execute(
             new SearchCandidatesCommand(
                 new SearchCriteria(statusFilter, programFilter), new Pageable(page, size))));
@@ -158,15 +155,15 @@ public class CandidateController {
   @ApiResponse(
       responseCode = "400",
       description = "Missing X-Actor-Id header (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   @ApiResponse(
       responseCode = "404",
       description = "Unknown id or soft-deleted (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   @ApiResponse(
       responseCode = "409",
       description = "Verification already in progress (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   public HttpResponse<Void> triggerEligibility(
       @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
       @Parameter(
@@ -196,15 +193,15 @@ public class CandidateController {
   @ApiResponse(
       responseCode = "400",
       description = "Missing X-Actor-Id header (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   @ApiResponse(
       responseCode = "404",
       description = "Unknown id (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   @ApiResponse(
       responseCode = "409",
       description = "Already deleted (RFC 7807).",
-      content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+      content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
   public HttpResponse<Void> deleteOne(
       @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
       @Parameter(

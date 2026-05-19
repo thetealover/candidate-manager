@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Serdeable
 @Schema(description = "A candidate record.")
-public record CandidateResponse(
+public record CandidateDto(
     @Schema(description = "Server-generated candidate id.", example = "8e3b8f2a-...-...") UUID id,
     @Schema(description = "Given name.", example = "Alice") String firstName,
     @Schema(description = "Family name.", example = "Anderson") String lastName,
@@ -30,8 +30,8 @@ public record CandidateResponse(
     @Schema(description = "When the candidate was soft-deleted; null on all returned candidates.")
         Instant deletedAt) {
 
-  public static CandidateResponse from(final Candidate candidate) {
-    return new CandidateResponse(
+  public static CandidateDto from(final Candidate candidate) {
+    return new CandidateDto(
         candidate.id().value(),
         candidate.fullName().firstName(),
         candidate.fullName().lastName(),
