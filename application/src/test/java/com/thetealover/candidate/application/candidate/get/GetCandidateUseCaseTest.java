@@ -1,13 +1,10 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.candidate.get;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
-import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
@@ -19,9 +16,6 @@ import com.thetealover.candidate.domain.candidate.HighestDegree;
 import com.thetealover.candidate.domain.candidate.ProgramLevel;
 import com.thetealover.candidate.domain.port.CandidateRepository;
 import com.thetealover.candidate.domain.port.Clock;
-import com.thetealover.candidate.domain.port.Page;
-import com.thetealover.candidate.domain.port.Pageable;
-import com.thetealover.candidate.domain.port.SearchCriteria;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -32,13 +26,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class CandidateUseCasesTest {
+class GetCandidateUseCaseTest {
 
   private static final Clock CLOCK = () -> Instant.parse("2026-05-18T10:00:00Z");
 
   @Mock CandidateRepository repository;
 
-  private Candidate sample(final CandidateId id) {
+  private Candidate sample() {
     return Candidate.register(
         new FullName("Alice", "Anderson"),
         new Email("alice@example.com"),
@@ -50,40 +44,20 @@ class CandidateUseCasesTest {
   }
 
   @Test
-  void get_returns_active_candidate() {
+  void returns_active_candidate() {
     final CandidateId id = CandidateId.generate();
-    final Candidate candidate = sample(id);
+    final Candidate candidate = sample();
     when(repository.findActiveById(any())).thenReturn(Optional.of(candidate));
     final GetCandidateUseCase useCase = new GetCandidateUseCase(repository);
     assertThat(useCase.execute(new GetCandidateCommand(id))).isSameAs(candidate);
   }
 
   @Test
-  void get_throws_when_not_found() {
+  void throws_when_not_found() {
     final CandidateId id = CandidateId.generate();
     when(repository.findActiveById(id)).thenReturn(Optional.empty());
     final GetCandidateUseCase useCase = new GetCandidateUseCase(repository);
     assertThatThrownBy(() -> useCase.execute(new GetCandidateCommand(id)))
         .isInstanceOf(CandidateNotFoundException.class);
-  }
-
-  @Test
-  void search_delegates_to_repository() {
-    final Pageable pageable = new Pageable(0, 20);
-    final Page<Candidate> page = new Page<>(List.of(), 0, 20, 0);
-    when(repository.searchActive(any(), any())).thenReturn(page);
-    final SearchCandidatesUseCase useCase = new SearchCandidatesUseCase(repository);
-    assertThat(useCase.execute(SearchCriteria.empty(), pageable)).isSameAs(page);
-  }
-
-  @Test
-  void soft_delete_marks_and_saves() {
-    final CandidateId id = CandidateId.generate();
-    final Candidate candidate = sample(id);
-    when(repository.findActiveById(any())).thenReturn(Optional.of(candidate));
-    final SoftDeleteCandidateUseCase useCase = new SoftDeleteCandidateUseCase(repository);
-    useCase.execute(id);
-    assertThat(candidate.isDeleted()).isTrue();
-    verify(repository).save(candidate);
   }
 }
