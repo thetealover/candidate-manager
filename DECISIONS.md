@@ -553,6 +553,17 @@ per-IP first, then per-actor. If per-actor rejects after per-IP
 succeeded, the per-IP token is refunded via `Bucket.addTokens(1)` so
 the rejected request doesn't double-bill the client.
 
+**Trade-off — `X-Forwarded-For` is trusted unconditionally:** The
+per-IP key is derived from the first non-empty `X-Forwarded-For`
+entry, falling back to the socket remote address. A client speaking
+directly to the service (no proxy in front) can therefore set XFF to
+any value and rotate it to bypass the per-IP bucket. **The intended
+deployment posture is behind an AWS ALB or API Gateway that strips
+client-supplied XFF and writes the verified client IP itself** —
+documented for D20's deploy companion (D… the Terraform module). A
+`trusted-proxies` config-driven allowlist is a follow-up: only honor
+XFF when the request originates from a known proxy address.
+
 **429 response shape (D10 + standard rate-limit headers):** RFC 7807
 `ProblemDetail` body with `type=…/rate-limit-exceeded`, plus
 `Retry-After` (seconds) and `X-RateLimit-Limit` / `-Remaining`
