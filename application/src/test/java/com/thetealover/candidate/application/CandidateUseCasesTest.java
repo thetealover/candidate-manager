@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
+import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
@@ -53,7 +55,7 @@ class CandidateUseCasesTest {
     final Candidate candidate = sample(id);
     when(repository.findActiveById(any())).thenReturn(Optional.of(candidate));
     final GetCandidateUseCase useCase = new GetCandidateUseCase(repository);
-    assertThat(useCase.execute(id)).isSameAs(candidate);
+    assertThat(useCase.execute(new GetCandidateCommand(id))).isSameAs(candidate);
   }
 
   @Test
@@ -61,7 +63,8 @@ class CandidateUseCasesTest {
     final CandidateId id = CandidateId.generate();
     when(repository.findActiveById(id)).thenReturn(Optional.empty());
     final GetCandidateUseCase useCase = new GetCandidateUseCase(repository);
-    assertThatThrownBy(() -> useCase.execute(id)).isInstanceOf(CandidateNotFoundException.class);
+    assertThatThrownBy(() -> useCase.execute(new GetCandidateCommand(id)))
+        .isInstanceOf(CandidateNotFoundException.class);
   }
 
   @Test

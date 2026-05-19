@@ -6,10 +6,11 @@ import com.thetealover.candidate.api.dto.PageResponse;
 import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
 import com.thetealover.candidate.api.problem.ProblemDetail;
-import com.thetealover.candidate.application.GetCandidateUseCase;
 import com.thetealover.candidate.application.RequestEligibilityVerificationUseCase;
 import com.thetealover.candidate.application.SearchCandidatesUseCase;
 import com.thetealover.candidate.application.SoftDeleteCandidateUseCase;
+import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
+import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateCommand;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
@@ -114,7 +115,7 @@ public class CandidateController {
       @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id) {
     MDC.put("candidateId", id.toString());
     try {
-      return CandidateResponse.from(get.execute(CandidateId.of(id)));
+      return CandidateResponse.from(get.execute(new GetCandidateCommand(CandidateId.of(id))));
     } finally {
       MDC.remove("candidateId");
     }
