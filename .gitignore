@@ -22,3 +22,11 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Terraform — provider cache, state, and tfvars (lock file is checked in)
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+crash.log
+crash.*.log
