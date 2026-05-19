@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--
+      Default Logback configuration. Used by the 'local' and 'test' environments
+      for a readable terminal output. The 'dev' environment loads logback-dev.xml
+      via `logger.config: classpath:logback-dev.xml` in application-dev.yml.
+    -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} [correlationId=%X{correlationId:-} actorId=%X{actorId:-} candidateId=%X{candidateId:-}] - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <logger name="com.thetealover" level="DEBUG"/>
+    <logger name="io.micronaut" level="INFO"/>
+    <logger name="org.hibernate.SQL" level="INFO"/>
+    <logger name="liquibase" level="INFO"/>
+</configuration>

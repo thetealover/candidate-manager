@@ -1,0 +1,42 @@
+services:
+  candidate-manager-ws-postgresql:
+    container_name: candidate-manager-postgres
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=canmanager
+      - POSTGRES_DB=canmanager
+    volumes:
+      - /var/lib/postgresql/data
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canmanager -d canmanager"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    networks:
+      - candidate-manager
+
+  app:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: candidate-manager-app
+    depends_on:
+      candidate-manager-ws-postgresql:
+        condition: service_healthy
+    environment:
+      MICRONAUT_ENVIRONMENTS: local
+      JDBC_URL: jdbc:postgresql://candidate-manager-ws-postgresql:5432/canmanager?currentSchema=%22canmanager-ws%22
+      JDBC_USER: canmanager
+      JDBC_PASSWORD: password
+    ports:
+      - "8080:8080"
+    networks:
+      - candidate-manager
+
+networks:
+  candidate-manager:
+    driver: bridge

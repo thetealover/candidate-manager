@@ -1,0 +1,100 @@
+// REST adapter + composition root. Source code depends on `application`;
+// `infrastructure` is wired in at runtime so Micronaut DI can find the adapter beans.
+
+plugins {
+    alias(libs.plugins.micronaut.application)
+    alias(libs.plugins.micronaut.aot)
+}
+
+application {
+    mainClass = 'com.thetealover.candidate.api.Application'
+}
+
+micronaut {
+    version = libs.versions.micronaut.get()
+    runtime = 'netty'
+    testRuntime = 'junit_5'
+    processing {
+        incremental = true
+        annotations 'com.thetealover.candidate.*'
+    }
+    aot {
+        optimizeServiceLoading = true
+        convertYamlToJava = true
+        precomputeOperations = true
+        cacheEnvironment = true
+        optimizeClassLoading = true
+        deduceEnvironment = true
+        optimizeNetty = true
+    }
+}
+
+// The OpenAPI -A flag is only consumed by the OpenAPI processor on the main
+// source set; scoping it to compileJava avoids -Werror failing compileTestJava
+// once Lombok is on the test annotation-processor path (no consumer there).
+tasks.named('compileJava').configure {
+    options.compilerArgs.add(
+            "-Amicronaut.openapi.views.spec=swagger-ui.enabled=true,redoc.enabled=true,rapidoc.enabled=true"
+    )
+}
+
+// Pass DOCKER_HOST to the test JVM so Testcontainers can find the Docker daemon.
+// Mirrors the same block in infrastructure/build.gradle.
+tasks.withType(Test).configureEach {
+    def userHome = System.getProperty('user.home')
+    def rawSocket = new File(userHome, 'Library/Containers/com.docker.docker/Data/docker.raw.sock')
+    def desktopSocket = new File(userHome, '.docker/run/docker.sock')
+    def dockerHostEnv = System.getenv('DOCKER_HOST')
+    if (dockerHostEnv) {
+        environment 'DOCKER_HOST', dockerHostEnv
+    } else if (rawSocket.exists()) {
+        environment 'DOCKER_HOST', "unix://${rawSocket.absolutePath}"
+    } else if (desktopSocket.exists()) {
+        environment 'DOCKER_HOST', "unix://${desktopSocket.absolutePath}"
+    }
+    environment 'DOCKER_API_VERSION', '1.45'
+    systemProperty 'api.version', '1.45'
+    environment 'TESTCONTAINERS_RYUK_DISABLED', 'true'
+}
+
+dependencies {
+    implementation project(':application')
+    runtimeOnly    project(':infrastructure')
+
+    // HTTP + JSON
+    implementation libs.micronaut.http.server.netty
+    implementation libs.micronaut.serde.jackson
+
+    // Validation (jakarta) + RFC 7807 Problem Details
+    implementation libs.micronaut.validation
+    implementation libs.micronaut.problem.json
+
+    // Management endpoints (health/liveness/readiness)
+    implementation libs.micronaut.management
+
+    // OpenAPI / Swagger — spec generated at compile time
+    annotationProcessor libs.micronaut.openapi
+    implementation      libs.swagger.annotations
+
+    // Lombok: AP ordering is handled automatically by the Micronaut Gradle plugin.
+    compileOnly         libs.lombok
+    annotationProcessor libs.lombok
+    // Validation + DI processors
+    annotationProcessor libs.micronaut.inject.java
+    annotationProcessor libs.micronaut.validation.processor
+
+    // Logging — JSON layout for structured logs
+    runtimeOnly libs.logback.classic
+    runtimeOnly libs.logstash.logback.encoder
+
+    // Test
+    testImplementation platform(libs.junit.bom)
+    testImplementation libs.bundles.unit.test
+    testImplementation libs.micronaut.test.junit5
+    testImplementation libs.micronaut.http.client
+    testImplementation libs.bundles.testcontainers
+    testImplementation libs.awaitility
+    testCompileOnly         libs.lombok
+    testAnnotationProcessor libs.lombok
+    testRuntimeOnly    libs.junit.platform.launcher
+}
