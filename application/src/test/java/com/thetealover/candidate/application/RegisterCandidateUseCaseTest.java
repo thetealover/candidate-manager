@@ -32,7 +32,7 @@ class RegisterCandidateUseCaseTest {
 
   @Mock CandidateRepository repository;
 
-  private RegisterCandidateCommand cmd() {
+  private RegisterCandidateCommand sampleCommand() {
     return new RegisterCandidateCommand(
         new FullName("Alice", "Anderson"),
         new Email("alice@example.com"),
@@ -46,7 +46,7 @@ class RegisterCandidateUseCaseTest {
   void registers_and_saves_when_email_is_free() {
     when(repository.existsActiveByEmail(any())).thenReturn(false);
     final RegisterCandidateUseCase useCase = new RegisterCandidateUseCase(repository, CLOCK);
-    final Candidate created = useCase.execute(cmd());
+    final Candidate created = useCase.execute(sampleCommand());
     assertThat(created.email().value()).isEqualTo("alice@example.com");
     verify(repository).save(created);
   }
@@ -55,7 +55,7 @@ class RegisterCandidateUseCaseTest {
   void rejects_when_email_is_already_active() {
     when(repository.existsActiveByEmail(any())).thenReturn(true);
     final RegisterCandidateUseCase useCase = new RegisterCandidateUseCase(repository, CLOCK);
-    assertThatThrownBy(() -> useCase.execute(cmd()))
+    assertThatThrownBy(() -> useCase.execute(sampleCommand()))
         .isInstanceOf(EmailAlreadyRegisteredException.class);
     verify(repository, never()).save(any());
   }
