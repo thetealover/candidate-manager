@@ -15,6 +15,18 @@ Design docs live in `docs/superpowers/specs/`. Read them before making any non-t
 
 ADRs (one per locked trade-off) live in `docs/adr/` once authored. The final deliverable also requires a `DECISIONS.md` at the repo root summarizing the key trade-offs.
 
+## Project skills (procedural references)
+
+For any change that maps onto one of these tasks, invoke the matching skill via the `Skill` tool before touching code. Each skill bakes in the relevant conventions and a pre-commit checklist:
+
+- `adding-a-domain-value-object` — new record/enum under `domain/` with compact-constructor validation.
+- `adding-a-use-case` — new orchestration under `application/` with constructor-injected ports and Mockito tests.
+- `adding-a-jpa-adapter` — new persistence adapter under `infrastructure/`: entity + mapper + Micronaut Data interface + adapter + Testcontainers IT.
+- `adding-a-rest-endpoint` — new controller method, DTO with Bean Validation, RFC 7807 errors, OpenAPI annotations, HTTP IT.
+- `adding-a-liquibase-migration` — new SQL changeset under `infrastructure/src/main/resources/db/changelog/changes/` with rollback block and YAML master entry.
+
+Skills live in `.claude/skills/<name>/SKILL.md` and travel with the repo.
+
 ## Mandatory stack (do not substitute)
 
 - Java **21+** with **Micronaut** framework. **Not Spring Boot.**
@@ -57,6 +69,49 @@ If you find yourself wanting to add a forbidden import, the design is wrong — 
 - **No string concatenation with `+`.** Use `"...%s...".formatted(x)` for runtime assembly; use text blocks for multi-line literals and annotation values (`@Query` JPQL, `@Operation` descriptions). SLF4J `{}` placeholders are not concatenation and are unaffected.
 - **Descriptive variable names — no single-letter or cryptic abbreviations.** Locals, parameters, lambda parameters, and `instanceof X y` pattern binders must use the full noun: `candidate` not `c`, `evaluation` not `r`, `pageable` not `p`, `entity` not `e`, `useCase` not `uc`, `command` not `cmd`. Only loop-counter `i`/`j` and the conventional `ex` for exception parameters are permitted short names.
 - **Spotless must pass before commit.** Run `./gradlew spotlessApply` if needed.
+
+## Naming suffixes (used consistently across the codebase)
+
+| Suffix | Module | Purpose |
+|---|---|---|
+| `…UseCase` | `application` | Synchronous orchestration class (e.g. `RegisterCandidateUseCase`). |
+| `…Command` | `application` | Immutable input record for a write use case (e.g. `RegisterCandidateCommand`). |
+| `…Handler` | `application` | `@EventListener` consuming a domain event (e.g. `EvaluateEligibilityHandler`). |
+| `…JpaEntity` | `infrastructure/persistence/jpa` | JPA-annotated entity (e.g. `CandidateJpaEntity`). |
+| `…MicronautRepository` | `infrastructure/persistence` | Micronaut Data interface extending `CrudRepository` with `@Query` methods. |
+| `…JpaRepositoryAdapter` | `infrastructure/persistence` | Implements the domain port; delegates to the `…MicronautRepository`. |
+| `…Mapper` | `infrastructure/persistence/mapper` | `public final class` with `private` constructor + `public static` mapping methods. No MapStruct. |
+| `…IT` | `*/src/test` | Integration test (Testcontainers-backed). Plain `…Test` is a unit test. |
+
+When a new class fits one of these roles, use the established suffix — don't invent a synonym (`…Service`, `…Repo`, `…Dao`).
+
+## Mapper shape
+
+Mappers are plain Java — no MapStruct, no Lombok:
+
+- `public final class <Aggregate>Mapper { private <Aggregate>Mapper() {} … }` (final + private no-arg constructor).
+- Only `public static` methods. Two by convention: `toJpa(<DomainAggregate>)` and `toDomain(<JpaEntity>)`.
+- No state, no Micronaut beans, no `@Singleton` — mappers are pure functions.
+
+## Controller-class defaults
+
+Every controller in this codebase carries the same class-level annotation triple — don't omit one:
+
+```java
+@Controller("/api/v1/<resource>")
+@Validated
+@ExecuteOn(TaskExecutors.BLOCKING)
+public class <Resource>Controller { … }
+```
+
+- `@ExecuteOn(TaskExecutors.BLOCKING)` runs every method on the virtual-thread blocking pool. JPA work must never run on a Netty event loop.
+- When a controller method takes a candidate id, push it into MDC inside a `try/finally`:
+
+  ```java
+  MDC.put("candidateId", id.toString());
+  try { … } finally { MDC.remove("candidateId"); }
+  ```
+- Required headers (`X-Actor-Id`) use `@Header(value = "…", defaultValue = "")` + a `isBlank()` check that throws `MissingHeaderException`. Not `@Header(required = true)`.
 
 ## Test conventions
 
