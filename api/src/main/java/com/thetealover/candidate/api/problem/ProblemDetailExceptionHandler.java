@@ -1,5 +1,6 @@
 package com.thetealover.candidate.api.problem;
 
+import com.thetealover.candidate.api.filter.RequestContextFilter;
 import com.thetealover.candidate.api.ratelimit.RateLimitDecision;
 import com.thetealover.candidate.api.ratelimit.RateLimitExceededException;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
@@ -30,7 +31,12 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
   @SuppressWarnings("rawtypes")
   public HttpResponse<?> handle(final HttpRequest request, final Throwable ex) {
     final String path = request.getPath();
-    final String correlationId = MDC.get("correlationId");
+    // Prefer the request attribute set by RequestContextFilter — MDC may have been cleared
+    // by the time this handler runs on a different thread than the one that set it.
+    final String correlationId =
+        request
+            .getAttribute(RequestContextFilter.CORRELATION_ID_ATTR, String.class)
+            .orElseGet(() -> MDC.get("correlationId"));
 
     if (ex instanceof CandidateNotFoundException notFound) {
       return body(

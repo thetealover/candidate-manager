@@ -10,16 +10,18 @@ import java.time.Duration;
  *
  * <p>Each leaf node (per-ip.read, per-ip.write, per-actor.write) is its own static {@link Limit}
  * subclass annotated {@code @ConfigurationProperties}, so Micronaut binds the nested YAML keys onto
- * the bean. A bare {@code Limit} field on the parent would not be recursed into.
+ * the bean. The parent classes expose the children via setter so Micronaut can wire the populated
+ * child bean back onto the parent — eager {@code new Read()} field initializers would create a
+ * separate, unbound instance that the parent's getter would then return.
  */
 @ConfigurationProperties("rate-limit")
 @Requires(property = "rate-limit.enabled", value = "true")
 public class RateLimitConfig {
 
   private boolean enabled = true;
-  private final PerIp perIp = new PerIp();
-  private final PerActor perActor = new PerActor();
-  private final Cache cache = new Cache();
+  private PerIp perIp = new PerIp();
+  private PerActor perActor = new PerActor();
+  private Cache cache = new Cache();
 
   public boolean isEnabled() {
     return enabled;
@@ -33,37 +35,57 @@ public class RateLimitConfig {
     return perIp;
   }
 
+  public void setPerIp(final PerIp perIp) {
+    this.perIp = perIp;
+  }
+
   public PerActor getPerActor() {
     return perActor;
+  }
+
+  public void setPerActor(final PerActor perActor) {
+    this.perActor = perActor;
   }
 
   public Cache getCache() {
     return cache;
   }
 
+  public void setCache(final Cache cache) {
+    this.cache = cache;
+  }
+
   public RateLimit ipRead() {
-    return new RateLimit(perIp.read.getCapacity(), perIp.read.getRefillPeriod());
+    return new RateLimit(perIp.getRead().getCapacity(), perIp.getRead().getRefillPeriod());
   }
 
   public RateLimit ipWrite() {
-    return new RateLimit(perIp.write.getCapacity(), perIp.write.getRefillPeriod());
+    return new RateLimit(perIp.getWrite().getCapacity(), perIp.getWrite().getRefillPeriod());
   }
 
   public RateLimit actorWrite() {
-    return new RateLimit(perActor.write.getCapacity(), perActor.write.getRefillPeriod());
+    return new RateLimit(perActor.getWrite().getCapacity(), perActor.getWrite().getRefillPeriod());
   }
 
   @ConfigurationProperties("per-ip")
   public static class PerIp {
-    private final Read read = new Read();
-    private final Write write = new Write();
+    private Read read = new Read();
+    private Write write = new Write();
 
     public Read getRead() {
       return read;
     }
 
+    public void setRead(final Read read) {
+      this.read = read;
+    }
+
     public Write getWrite() {
       return write;
+    }
+
+    public void setWrite(final Write write) {
+      this.write = write;
     }
 
     @ConfigurationProperties("read")
@@ -83,10 +105,14 @@ public class RateLimitConfig {
 
   @ConfigurationProperties("per-actor")
   public static class PerActor {
-    private final Write write = new Write();
+    private Write write = new Write();
 
     public Write getWrite() {
       return write;
+    }
+
+    public void setWrite(final Write write) {
+      this.write = write;
     }
 
     @ConfigurationProperties("write")
