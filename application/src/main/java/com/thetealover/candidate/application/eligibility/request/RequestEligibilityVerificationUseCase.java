@@ -1,7 +1,6 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.eligibility.request;
 
 import com.thetealover.candidate.domain.candidate.Candidate;
-import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
 import com.thetealover.candidate.domain.eligibility.EligibilityRequestedEvent;
 import com.thetealover.candidate.domain.port.CandidateRepository;
@@ -9,7 +8,6 @@ import com.thetealover.candidate.domain.port.Clock;
 import com.thetealover.candidate.domain.port.EligibilityEventPublisher;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 
 @Singleton
@@ -21,11 +19,15 @@ public class RequestEligibilityVerificationUseCase {
   private final Clock clock;
 
   @Transactional
-  public void execute(final CandidateId id, final UUID correlationId, final String actorId) {
+  public void execute(final RequestEligibilityVerificationCommand command) {
     final Candidate candidate =
-        repository.findActiveById(id).orElseThrow(() -> new CandidateNotFoundException(id));
+        repository
+            .findActiveById(command.id())
+            .orElseThrow(() -> new CandidateNotFoundException(command.id()));
     candidate.startVerification();
     repository.save(candidate);
-    publisher.publish(new EligibilityRequestedEvent(id, correlationId, actorId, clock.instant()));
+    publisher.publish(
+        new EligibilityRequestedEvent(
+            command.id(), command.correlationId(), command.actorId(), clock.instant()));
   }
 }
