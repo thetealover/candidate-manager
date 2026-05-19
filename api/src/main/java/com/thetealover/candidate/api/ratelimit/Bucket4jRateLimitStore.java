@@ -9,6 +9,7 @@ import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.TimeMeter;
 import java.time.Duration;
 import java.time.Instant;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * In-memory {@link RateLimitStore} backed by Bucket4j buckets held in a Caffeine cache keyed by the
@@ -18,6 +19,7 @@ import java.time.Instant;
  * <p>{@link Ticker} (Caffeine clock) and {@link TimeMeter} (Bucket4j clock) are both injected so
  * tests can drive time without sleeping. The production factory wires the real system clocks.
  */
+@Slf4j
 public class Bucket4jRateLimitStore implements RateLimitStore {
 
   private final TimeMeter timeMeter;
@@ -53,6 +55,8 @@ public class Bucket4jRateLimitStore implements RateLimitStore {
     final Bucket bucket = buckets.getIfPresent(key);
     if (bucket != null) {
       bucket.addTokens(1);
+    } else {
+      log.debug("rate-limit.refund-skipped key={} reason=bucket-evicted", key);
     }
   }
 
