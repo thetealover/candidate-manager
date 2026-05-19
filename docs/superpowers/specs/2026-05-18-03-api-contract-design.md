@@ -16,7 +16,7 @@ Content type is `application/json` for requests and successful responses; errors
 
 Register a new candidate.
 
-**Request body** (`CandidateRegistrationRequest`):
+**Request body** (`CandidateRegistrationRequestDto`):
 
 ```json
 {
@@ -39,9 +39,9 @@ Register a new candidate.
 
 | Status | Body | When |
 |---|---|---|
-| `201 Created` | `CandidateResponse` (see below) | Success. `Location: /api/v1/candidates/{id}` set. |
-| `400 Bad Request` | `ProblemDetail` | Validation failure on any field. |
-| `409 Conflict` | `ProblemDetail` (`type=…/email-already-registered`) | Email is already used by an active candidate. |
+| `201 Created` | `CandidateDto` (see below) | Success. `Location: /api/v1/candidates/{id}` set. |
+| `400 Bad Request` | `ProblemDetailDto` | Validation failure on any field. |
+| `409 Conflict` | `ProblemDetailDto` (`type=…/email-already-registered`) | Email is already used by an active candidate. |
 
 ### `GET /api/v1/candidates/{id}`
 
@@ -51,8 +51,8 @@ Retrieve a candidate including current eligibility status.
 
 | Status | Body | When |
 |---|---|---|
-| `200 OK` | `CandidateResponse` | Found and active. |
-| `404 Not Found` | `ProblemDetail` | Unknown id, or candidate is soft-deleted. |
+| `200 OK` | `CandidateDto` | Found and active. |
+| `404 Not Found` | `ProblemDetailDto` | Unknown id, or candidate is soft-deleted. |
 
 ### `PUT /api/v1/candidates/{id}/eligibility`
 
@@ -67,9 +67,9 @@ Trigger asynchronous eligibility verification.
 | Status | Body | When |
 |---|---|---|
 | `202 Accepted` | empty | Verification queued. Status transitions to `VERIFICATION_IN_PROGRESS`. |
-| `400 Bad Request` | `ProblemDetail` (`type=…/missing-header`) | `X-Actor-Id` not provided. |
-| `404 Not Found` | `ProblemDetail` | Unknown id or soft-deleted. |
-| `409 Conflict` | `ProblemDetail` (`type=…/already-in-progress`) | Verification is already in `VERIFICATION_IN_PROGRESS`. (Re-triggering from a terminal status is allowed and returns 202.) |
+| `400 Bad Request` | `ProblemDetailDto` (`type=…/missing-header`) | `X-Actor-Id` not provided. |
+| `404 Not Found` | `ProblemDetailDto` | Unknown id or soft-deleted. |
+| `409 Conflict` | `ProblemDetailDto` (`type=…/already-in-progress`) | Verification is already in `VERIFICATION_IN_PROGRESS`. (Re-triggering from a terminal status is allowed and returns 202.) |
 
 ### `GET /api/v1/candidates?status=&program=&page=&size=`
 
@@ -88,7 +88,7 @@ Search active candidates with filtering and pagination.
 
 ```json
 {
-  "content": [ /* CandidateResponse[] */ ],
+  "content": [ /* CandidateDto[] */ ],
   "page": 0,
   "size": 20,
   "totalElements": 137,
@@ -107,13 +107,13 @@ Soft-delete a candidate.
 | Status | Body | When |
 |---|---|---|
 | `204 No Content` | empty | Soft-deleted. |
-| `400 Bad Request` | `ProblemDetail` (`type=…/missing-header`) | Header not provided. |
-| `404 Not Found` | `ProblemDetail` | Unknown id. |
-| `409 Conflict` | `ProblemDetail` (`type=…/candidate-already-deleted`) | Already deleted. |
+| `400 Bad Request` | `ProblemDetailDto` (`type=…/missing-header`) | Header not provided. |
+| `404 Not Found` | `ProblemDetailDto` | Unknown id. |
+| `409 Conflict` | `ProblemDetailDto` (`type=…/candidate-already-deleted`) | Already deleted. |
 
 ## Response DTOs
 
-### `CandidateResponse`
+### `CandidateDto`
 
 ```json
 {
@@ -168,16 +168,16 @@ jackson:
     fail-on-unknown-properties: true
 ```
 
-Rationale: catches client typos (e.g. `"emails"` instead of `"email"`) instead of silently dropping them and surfacing a misleading downstream error. The API is versioned via `/api/v1`, so future schema additions are handled by a new version, not by lenient deserialization. The resulting `UnrecognizedPropertyException` is mapped to the standard `ProblemDetail` shape with `type=…/validation-failure` and an `errors[]` entry naming the offending field.
+Rationale: catches client typos (e.g. `"emails"` instead of `"email"`) instead of silently dropping them and surfacing a misleading downstream error. The API is versioned via `/api/v1`, so future schema additions are handled by a new version, not by lenient deserialization. The resulting `UnrecognizedPropertyException` is mapped to the standard `ProblemDetailDto` shape with `type=…/validation-failure` and an `errors[]` entry naming the offending field.
 
 ## Headers
 
 | Header | Direction | Behavior |
 |---|---|---|
 | `X-Correlation-Id` | request → response | If absent, the server filter generates a UUID v4 and echoes it. Always present in the response. Placed in MDC for the request's lifetime. |
-| `X-Actor-Id` | request | Required on `PUT /eligibility` and `DELETE`. Missing → `400` with `ProblemDetail` (`type=…/missing-header`). On other endpoints, defaulted to `"system"`. |
+| `X-Actor-Id` | request | Required on `PUT /eligibility` and `DELETE`. Missing → `400` with `ProblemDetailDto` (`type=…/missing-header`). On other endpoints, defaulted to `"system"`. |
 
-Missing-header `ProblemDetail` shape (example):
+Missing-header `ProblemDetailDto` shape (example):
 
 ```json
 {

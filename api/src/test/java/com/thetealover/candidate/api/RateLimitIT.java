@@ -3,7 +3,7 @@ package com.thetealover.candidate.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-import com.thetealover.candidate.api.problem.ProblemDetail;
+import com.thetealover.candidate.api.problem.ProblemDetailDto;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -59,14 +59,14 @@ class RateLimitIT {
     assertThat(second.getStatus().getCode()).isEqualTo(200);
 
     try {
-      client.toBlocking().exchange(HttpRequest.GET("/api/v1/candidates"), ProblemDetail.class);
+      client.toBlocking().exchange(HttpRequest.GET("/api/v1/candidates"), ProblemDetailDto.class);
       fail("expected 429");
     } catch (final HttpClientResponseException ex) {
       assertThat(ex.getStatus().getCode()).isEqualTo(429);
       assertThat(ex.getResponse().getContentType().orElseThrow().toString())
           .isEqualTo(MediaType.APPLICATION_JSON_PROBLEM);
 
-      final ProblemDetail body = ex.getResponse().getBody(ProblemDetail.class).orElseThrow();
+      final ProblemDetailDto body = ex.getResponse().getBody(ProblemDetailDto.class).orElseThrow();
       assertThat(body.status()).isEqualTo(429);
       assertThat(body.type().toString()).endsWith("/problems/rate-limit-exceeded");
       assertThat(body.title()).isEqualTo("Rate limit exceeded");

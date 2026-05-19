@@ -142,7 +142,7 @@ Micronaut Data annotations cause Jackson-related class-file warnings that `-Werr
 
 The Micronaut application plugin produces a tar/zip distribution, not a shadow jar. Stage-2 untars the distribution and runs the start script. Non-root UID 1001.
 
-### 16. `CandidateController` correlation-id MDC fallback
+### 16. `CandidateControllerV1` correlation-id MDC fallback
 
 Filter populates `MDC.correlationId` on the Netty thread; propagation to other executors isn't always automatic. The controller now falls back to a fresh `UUID.randomUUID()` rather than NPE when MDC is empty. Surfaced by the async-eligibility e2e test.
 

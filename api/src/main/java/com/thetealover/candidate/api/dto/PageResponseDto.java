@@ -8,16 +8,16 @@ import java.util.List;
 
 @Serdeable
 @Schema(description = "Pagination envelope.")
-public record PageResponse<T>(
+public record PageResponseDto<T>(
     @Schema(description = "Page content.") List<T> content,
     @Schema(description = "Current page index (0-based).", example = "0") int page,
     @Schema(description = "Page size.", example = "20") int size,
     @Schema(description = "Total number of matching elements.", example = "137") long totalElements,
     @Schema(description = "Total number of pages.", example = "7") int totalPages) {
 
-  public static PageResponse<CandidateResponse> ofCandidates(final Page<Candidate> page) {
-    return new PageResponse<>(
-        page.content().stream().map(CandidateResponse::from).toList(),
+  public static PageResponseDto<CandidateDto> ofCandidates(final Page<Candidate> page) {
+    return new PageResponseDto<>(
+        page.content().stream().map(CandidateDto::from).toList(),
         page.page(),
         page.size(),
         page.totalElements(),
