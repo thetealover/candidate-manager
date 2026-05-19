@@ -32,3 +32,9 @@ liquibase:
       change-log: classpath:db/changelog/db.changelog-master.yaml
       default-schema-name: public
       liquibase-schema-name: public
+
+# Rate limiting is exercised explicitly by RateLimitIT (which re-enables it
+# via @Property). All other ITs run with rate limiting off so the filter
+# doesn't accumulate state between tests.
+rate-limit:
+  enabled: false
