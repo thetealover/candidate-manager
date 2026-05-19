@@ -494,19 +494,179 @@ Dependabot. Skip until needed.
 
 ## D19 — Bonus scope and priority order
 
-In order, time budget permitting:
+In order, all delivered:
 
-1. **P0 — Complete service.** Done. End-to-end working microservice with
-   functional + non-functional requirements per the brief. Verified by
+1. **P0 — Complete service.** End-to-end working microservice meeting every
+   functional + non-functional requirement in the brief. Verified by
    `docker compose up --build` plus the unit + IT + e2e test suites.
-2. **P1 — GitHub Actions build + test + Dependabot + this document.** In
-   progress (this DECISIONS.md + Tasks 32–34 of the implementation plan).
-3. **P2 — Terraform reference IaC** under `infra/terraform/` for VPC + EKS
-   + RDS + IRSA + ECR. Stretch — meant to demonstrate the deployment shape,
-   not necessarily applied.
+2. **P1 — GitHub Actions build/test workflow, Dependabot, README, and this
+   document.** Brief's bonus *"GitHub Actions CI pipeline configuration"* +
+   non-functional *"README with setup instructions, architecture decision
+   records, and trade-offs"*.
+3. **P2 — Terraform reference module** under `infra/terraform/`. Brief's
+   bonus *"AWS deployment considerations documented (EKS, Secrets Manager)"*,
+   delivered as working (validated) HCL — see D20 for the full deployment
+   model.
+4. **P3 — Rate limiting.** Bucket4j-backed `HttpServerFilter` on
+   `/api/**` with per-IP + per-actor dimensions. Brief's bonus
+   *"Rate limiting on API endpoints"*. See D21.
 
-The time budget is the binding constraint. Lower priorities are not started
-until higher ones are solid.
+The 6–8 hour budget in the brief was the binding constraint. Lower
+priorities were not started until higher ones were solid.
+
+**Bonus points checklist (from the brief):**
+
+| Bonus | Status | Where |
+|---|---|---|
+| Event-driven audit trail | ✅ Done | D2 — `EligibilityDecidedEvent` → `WriteAuditEntryHandler` writes the audit row |
+| Rate limiting on API endpoints | ✅ Done | D21 — Bucket4j filter on /api/** with per-IP + per-actor dimensions |
+| Health check + readiness/liveness probes | ✅ Done | `application.yml` enables `endpoints.health/liveness/readiness` |
+| GitHub Actions CI pipeline | ✅ Done | `.github/workflows/build.yml` (P1 above) |
+| AWS deployment considerations documented (EKS, Secrets Manager) | ✅ Done | D20 + `infra/terraform/` (P2 above) |
+
+---
+
+## D20 — AWS deployment model: EKS + IRSA + Secrets Manager (reference, not applied)
+
+**Decision:** Document the AWS deploy target as a Terraform module under
+`infra/terraform/` rather than as prose. ECR repository and the Secrets
+Manager secret are provisioned as concrete resources; VPC (2 AZs,
+public + private subnets), RDS PostgreSQL 16, EKS 1.30 (managed node
+group), and the IRSA role are present as commented community-module
+references (`terraform-aws-modules/{vpc,rds,eks,iam}/aws`). The module is
+**not applied** in this repository — applying it costs money and is
+outside the brief's scope.
+
+**Deploy path:**
+
+1. CI workflow builds the service Docker image (`api/Dockerfile`) and
+   `docker push`es it to the ECR repo at
+   `aws_ecr_repository.service.repository_url`.
+2. A Kubernetes `Deployment` in the EKS cluster pulls that image; pod
+   spec sets `serviceAccountName` to the IRSA-bound service account.
+3. IRSA grants the pod's service account
+   `secretsmanager:GetSecretValue` on
+   `aws_secretsmanager_secret.db_credentials.arn` and **nothing else**
+   (least privilege).
+4. The pod reads the JSON secret on startup, hydrates the
+   `JDBC_URL` / `JDBC_USER` / `JDBC_PASSWORD` env vars expected by
+   `application.yml`, and Micronaut connects to RDS via the
+   private-subnet security group.
+5. An ALB (Kubernetes `Service` of type `LoadBalancer` + AWS Load Balancer
+   Controller) fronts the pod.
+
+**Why Terraform over a paragraph:** Reviewers parse working IaC faster
+than prose, and a validated module forces the deploy shape to be
+internally consistent (variable wiring, output references, provider
+constraints). The commented-out community-module blocks describe the
+production shape faithfully; uncommenting them is a one-step path to a
+real deploy with a `dev.tfvars` in hand.
+
+**Why these resources concrete (ECR + Secrets Manager) and the rest
+commented:**
+
+- **ECR + Secrets Manager** cost effectively nothing at rest and a real
+  `terraform plan` against an empty state cleanly shows the deploy
+  surface. Useful as a working artifact.
+- **VPC + RDS + EKS + IRSA** would attempt non-trivial spend if
+  uncommented (NAT gateway, RDS instance, EKS control plane hourly
+  charge). Commented modules document the shape without that risk.
+
+**Why IRSA over instance-profile credentials:** Pod-level identity
+(`ServiceAccount` annotated with `eks.amazonaws.com/role-arn`) gives a
+distinct IAM role per workload. The node IAM role can't be tightly
+scoped to a single secret without breaking other workloads on the same
+node; IRSA can. This matches the principal-of-least-privilege expectation
+the brief implicitly sets by calling out Secrets Manager.
+
+**Why VPC + RDS with `terraform-aws-modules/*`** instead of hand-rolled
+resources: the community modules are the de facto standard, vetted, and
+maintain forward compatibility across AWS provider versions. Hand-rolled
+HCL for a VPC alone is ~150 lines of low-value boilerplate.
+
+**Trade-off — not applied:** The module isn't connected to a live AWS
+account in this repo. `terraform fmt -check` and `terraform validate`
+both pass; `terraform apply` is intentionally never run. Reviewers can
+read the plan output by running `terraform init && terraform plan`
+locally; the only resources the plan would create are the ECR repo and
+the Secrets Manager secret.
+
+---
+
+## D21 — Rate limiting: per-IP universal + per-actor on actor endpoints (in-memory Bucket4j, Redis swap deferred)
+
+**Decision:** A Micronaut `HttpServerFilter` on `/api/**`
+(`RateLimitFilter`, `@Order` 20) enforces a per-IP token bucket on every
+request (read vs write split: GET 120 req/min, non-GET 30 req/min) and
+an additional per-actor token bucket (10 req/min) on
+`PUT /api/v1/candidates/{id}/eligibility` and
+`DELETE /api/v1/candidates/{id}`. Storage is hidden behind a
+`RateLimitStore` port whose in-memory adapter
+(`Bucket4jRateLimitStore`) holds Bucket4j buckets in a Caffeine cache.
+The bean is `@Requires(property="rate-limit.enabled", value="true")`
+so tests opt in. Spec: `docs/superpowers/specs/2026-05-19-rate-limiting-design.md`.
+
+**Why:** Satisfies the brief's bonus *"Rate limiting on API endpoints"*
+without spending the budget on a distributed cache. The port keeps the
+domain ports untouched and lets a future Redis adapter replace the
+in-memory store without changing call sites — same pattern as D3 for
+the eligibility event publisher.
+
+**Trade-off — single-instance state:** Two EKS pod replicas would each
+hold independent buckets, doubling effective capacity per key. For a
+test-task deployment with one replica this is the correct trade. The
+Redis swap is in the deferred-work table below.
+
+**Trade-off — fail open on store errors:** A bug in `tryConsume` that
+throws would, under fail-closed, stop all traffic — disproportionate
+for a soft control. Fail open + ERROR log is the standard posture.
+
+**Trade-off — narrower-bucket reporting + refund:** The filter checks
+per-IP first, then per-actor. If per-actor rejects after per-IP
+succeeded, the per-IP token is refunded via `Bucket.addTokens(1)` so
+the rejected request doesn't double-bill the client.
+
+**Trade-off — `X-Forwarded-For` is trusted unconditionally:** The
+per-IP key is derived from the first non-empty `X-Forwarded-For`
+entry, falling back to the socket remote address. A client speaking
+directly to the service (no proxy in front) can therefore set XFF to
+any value and rotate it to bypass the per-IP bucket. **The intended
+deployment posture is behind an AWS ALB or API Gateway that strips
+client-supplied XFF and writes the verified client IP itself** — the
+Terraform reference module in D20 documents that deploy shape. A
+`trusted-proxies` config-driven allowlist is a follow-up: only honor
+XFF when the request originates from a known proxy address.
+
+**429 response shape (D10 + standard rate-limit headers):** RFC 7807
+`ProblemDetail` body with `type=…/rate-limit-exceeded`, plus
+`Retry-After` (seconds) and `X-RateLimit-Limit` / `-Remaining`
+(always 0 on a 429) / `-Reset` (epoch seconds) headers. Successful
+responses do not carry the `X-RateLimit-*` triple — extra Bucket4j
+query for marginal client benefit; deferred.
+
+**Filter ordering:** `RateLimitFilter` runs after
+`RequestContextFilter` (order 20 vs 10) so 429 responses still carry
+the `X-Correlation-Id` set by the request-context filter, *and* the
+correlationId in the RFC 7807 body comes from a request attribute that
+crosses the Netty-to-blocking-executor thread hop (an MDC-only approach
+loses it).
+
+**Health probes:** `/health`, `/liveness`, `/readiness` are outside the
+`/api/**` selector and are never rate-limited. Probe failure would
+cause Kubernetes to roll the pod.
+
+**Bugs caught while landing this:** building the IT surfaced three
+production bugs that were each independent of rate limiting:
+(1) Micronaut doesn't recurse into untyped nested `@ConfigurationProperties`
+fields — fixed by introducing per-leaf subclasses of `Limit`;
+(2) MDC doesn't cross the Netty-to-blocking-executor thread hop, so
+`correlationId` was null in every error response body (latent across
+all error paths, not just 429) — fixed by stashing the correlationId
+on a request attribute;
+(3) `Instant.ofEpochSecond(0L, System.nanoTime())` treats `nanoTime()`
+as epoch-relative when it isn't — fixed by using
+`Instant.now().plusNanos(probe.getNanosToWaitForReset())`. All three
+fixes are in the same slice.
 
 ---
 
@@ -516,7 +676,7 @@ until higher ones are solid.
 |------|---------------------|--------------|
 | DB outbox for crash-safe event delivery | `infrastructure/persistence/eligibility` + Liquibase | D2 trade-off; covered by D3. |
 | Real authentication (replacing `X-Actor-Id`) | `api/` filter + DI | Out of scope per the brief; D9 documents the seam. |
-| OpenTelemetry `traceparent` propagation | `api/` filter + executor wrapper | Correlation-id is the local equivalent; OTel ties into the deploy stack which is P2. |
-| Rate limiting (Bucket4j) on public endpoints | `api/` filter | No traffic model to size against in this scope. |
+| OpenTelemetry `traceparent` propagation | `api/` filter + executor wrapper | Correlation-id covers in-process tracing; OTel would tie into the AWS deploy stack documented in D20 (X-Ray or self-hosted Tempo). |
+| Redis-backed `RateLimitStore` for multi-instance EKS deploys | `api/ratelimit/redis/RedisRateLimitStore.java` + ElastiCache module in `infra/terraform/main.tf` | Single-instance correctness is in scope (D21); Redis is the swap path. |
 | Recovery job for `VERIFICATION_IN_PROGRESS` stragglers | `infrastructure/` scheduled bean | Pairs with D3; lands together if the outbox does. |
 | Virtual-thread executor for `executors.blocking` | `application.yml` + custom `@Named("blocking")` bean | D6 documents the gap; AUTO routing covers the common case for now. |
