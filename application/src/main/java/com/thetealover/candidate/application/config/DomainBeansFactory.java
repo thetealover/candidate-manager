@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.config;
 
 import com.thetealover.candidate.domain.eligibility.EligibilityRules;
 import io.micronaut.context.annotation.Factory;
