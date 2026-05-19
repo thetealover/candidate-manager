@@ -1,6 +1,7 @@
 package com.thetealover.candidate.api.filter;
 
 import io.micronaut.core.async.publisher.Publishers;
+import io.micronaut.core.order.Ordered;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
@@ -14,6 +15,14 @@ import org.slf4j.MDC;
 @Filter("/api/**")
 @Slf4j(topic = "http")
 public class RequestContextFilter implements HttpServerFilter {
+
+  /** Run before any other filter so MDC + correlationId are set up first. */
+  public static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 10;
+
+  @Override
+  public int getOrder() {
+    return ORDER;
+  }
 
   private static final String CORRELATION_HEADER = "X-Correlation-Id";
   private static final String ACTOR_HEADER = "X-Actor-Id";
