@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.audit.write;
 
 import com.thetealover.candidate.domain.audit.EligibilityAuditEntry;
 import com.thetealover.candidate.domain.eligibility.EligibilityDecidedEvent;
