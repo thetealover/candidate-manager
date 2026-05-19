@@ -72,6 +72,10 @@ dependencies {
     // Management endpoints (health/liveness/readiness)
     implementation libs.micronaut.management
 
+    // Rate limiting
+    implementation libs.bucket4j.core
+    implementation libs.caffeine
+
     // OpenAPI / Swagger — spec generated at compile time
     annotationProcessor libs.micronaut.openapi
     implementation      libs.swagger.annotations
