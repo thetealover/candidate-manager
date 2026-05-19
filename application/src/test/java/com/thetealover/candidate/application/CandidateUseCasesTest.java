@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 
 import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
 import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
+import com.thetealover.candidate.application.candidate.search.SearchCandidatesCommand;
+import com.thetealover.candidate.application.candidate.search.SearchCandidatesUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
@@ -73,7 +75,8 @@ class CandidateUseCasesTest {
     final Page<Candidate> page = new Page<>(List.of(), 0, 20, 0);
     when(repository.searchActive(any(), any())).thenReturn(page);
     final SearchCandidatesUseCase useCase = new SearchCandidatesUseCase(repository);
-    assertThat(useCase.execute(SearchCriteria.empty(), pageable)).isSameAs(page);
+    assertThat(useCase.execute(new SearchCandidatesCommand(SearchCriteria.empty(), pageable)))
+        .isSameAs(page);
   }
 
   @Test
