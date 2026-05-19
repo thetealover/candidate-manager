@@ -1,5 +1,7 @@
 package com.thetealover.candidate.api.problem;
 
+import com.thetealover.candidate.api.ratelimit.RateLimitDecision;
+import com.thetealover.candidate.api.ratelimit.RateLimitExceededException;
 import com.thetealover.candidate.domain.candidate.CandidateNotFoundException;
 import com.thetealover.candidate.domain.candidate.EmailAlreadyRegisteredException;
 import io.micronaut.context.annotation.Requires;
@@ -12,6 +14,8 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.ExceptionHandler;
 import jakarta.inject.Singleton;
 import jakarta.validation.ConstraintViolationException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
@@ -58,6 +62,9 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           path,
           correlationId,
           List.of(new FieldError(missingHeader.headerName(), "must not be missing")));
+    }
+    if (ex instanceof RateLimitExceededException rateLimitExceeded) {
+      return rateLimit429(rateLimitExceeded, path, correlationId);
     }
     if (ex instanceof ConstraintViolationException constraintViolation) {
       final List<FieldError> errors =
@@ -147,5 +154,31 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
     return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.valueOf(status))
         .body(problemDetail)
         .contentType(MediaType.APPLICATION_JSON_PROBLEM);
+  }
+
+  private MutableHttpResponse<ProblemDetail> rateLimit429(
+      final RateLimitExceededException ex, final String path, final String correlationId) {
+
+    final RateLimitDecision decision = ex.decision();
+    final long retryAfterSeconds =
+        Math.max(1L, Duration.between(Instant.now(), decision.resetAt()).getSeconds());
+
+    final ProblemDetail problemDetail =
+        new ProblemDetail(
+            ProblemDetail.typeFor("rate-limit-exceeded"),
+            "Rate limit exceeded",
+            429,
+            "Too many requests. Try again in %d seconds.".formatted(retryAfterSeconds),
+            path,
+            correlationId,
+            null);
+
+    return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.TOO_MANY_REQUESTS)
+        .body(problemDetail)
+        .contentType(MediaType.APPLICATION_JSON_PROBLEM)
+        .header("Retry-After", Long.toString(retryAfterSeconds))
+        .header("X-RateLimit-Limit", Integer.toString(decision.limit().capacity()))
+        .header("X-RateLimit-Remaining", Long.toString(decision.remaining()))
+        .header("X-RateLimit-Reset", Long.toString(decision.resetAt().getEpochSecond()));
   }
 }
