@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.eligibility.request;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -51,7 +51,8 @@ class RequestEligibilityVerificationUseCaseTest {
 
     final var useCase = new RequestEligibilityVerificationUseCase(repository, publisher, CLOCK);
     final UUID correlationId = UUID.randomUUID();
-    useCase.execute(candidate.id(), correlationId, "actor-123");
+    useCase.execute(
+        new RequestEligibilityVerificationCommand(candidate.id(), correlationId, "actor-123"));
 
     Assertions.assertThat(candidate.eligibilityStatus())
         .isEqualTo(EligibilityStatus.VERIFICATION_IN_PROGRESS);

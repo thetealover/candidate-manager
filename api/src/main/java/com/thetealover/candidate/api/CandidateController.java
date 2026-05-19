@@ -6,7 +6,6 @@ import com.thetealover.candidate.api.dto.PageResponse;
 import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
 import com.thetealover.candidate.api.problem.ProblemDetail;
-import com.thetealover.candidate.application.RequestEligibilityVerificationUseCase;
 import com.thetealover.candidate.application.candidate.get.GetCandidateCommand;
 import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 import com.thetealover.candidate.application.candidate.register.RegisterCandidateCommand;
@@ -15,6 +14,8 @@ import com.thetealover.candidate.application.candidate.search.SearchCandidatesCo
 import com.thetealover.candidate.application.candidate.search.SearchCandidatesUseCase;
 import com.thetealover.candidate.application.candidate.softdelete.SoftDeleteCandidateCommand;
 import com.thetealover.candidate.application.candidate.softdelete.SoftDeleteCandidateUseCase;
+import com.thetealover.candidate.application.eligibility.request.RequestEligibilityVerificationCommand;
+import com.thetealover.candidate.application.eligibility.request.RequestEligibilityVerificationUseCase;
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.CandidateId;
 import com.thetealover.candidate.domain.candidate.DateOfBirth;
@@ -184,7 +185,8 @@ public class CandidateController {
         mdcCorrelation != null && !mdcCorrelation.isBlank()
             ? UUID.fromString(mdcCorrelation)
             : UUID.randomUUID();
-    requestEligibility.execute(CandidateId.of(id), correlationId, actorId);
+    requestEligibility.execute(
+        new RequestEligibilityVerificationCommand(CandidateId.of(id), correlationId, actorId));
     return HttpResponse.accepted();
   }
 
