@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.candidate.register;
 
 import com.thetealover.candidate.domain.candidate.DateOfBirth;
 import com.thetealover.candidate.domain.candidate.EducationBackground;
