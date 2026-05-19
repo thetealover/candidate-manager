@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.candidate.register;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

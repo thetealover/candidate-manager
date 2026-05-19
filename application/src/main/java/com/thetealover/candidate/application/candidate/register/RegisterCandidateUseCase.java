@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.candidate.register;
 
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.candidate.EmailAlreadyRegisteredException;
