@@ -1,4 +1,4 @@
-package com.thetealover.candidate.application;
+package com.thetealover.candidate.application.eligibility.evaluate;
 
 import com.thetealover.candidate.domain.candidate.Candidate;
 import com.thetealover.candidate.domain.eligibility.EligibilityDecidedEvent;
