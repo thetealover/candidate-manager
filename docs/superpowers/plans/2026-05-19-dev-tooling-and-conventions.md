@@ -11,7 +11,7 @@ The original implementation plan (`2026-05-18-candidate-manager.md`) covers Phas
 Two failure modes the work below is shaped to prevent:
 
 - **Convention drift.** The original implementation was written under a contract documented in CLAUDE.md, the four design specs, and five auto-memory feedback entries. As the codebase grew, several patterns became de-facto-but-undocumented (naming suffixes, mapper shape, controller-class defaults, `…JpaRepositoryAdapter` vs `…MicronautRepository`). A future session would have to re-derive them from the code.
-- **Boilerplate without rent.** The original "no Lombok" stance was a stack constraint, not an argument. The all-args constructor on `CandidateController` was 12 lines of pure assignment; the repeated `private static final Logger LOG = LoggerFactory.getLogger(...)` declaration paid no rent either. We rejected records-as-services after a spike (Micronaut's compile-time AOP can't subclass `final record`), so the cheapest remaining path was scoped Lombok.
+- **Boilerplate without rent.** The original "no Lombok" stance was a stack constraint, not an argument. The all-args constructor on `CandidateControllerV1` was 12 lines of pure assignment; the repeated `private static final Logger LOG = LoggerFactory.getLogger(...)` declaration paid no rent either. We rejected records-as-services after a spike (Micronaut's compile-time AOP can't subclass `final record`), so the cheapest remaining path was scoped Lombok.
 
 ## Phase 1 — Codify code conventions as project skills
 
@@ -66,7 +66,7 @@ Two failure modes the work below is shaped to prevent:
 
 - All 5 `…UseCase` classes + 2 `…Handler` classes in `application/`
 - `CandidateJpaRepositoryAdapter`, `EligibilityAuditJpaRepositoryAdapter`, `MicronautEligibilityEventPublisher` in `infrastructure/`
-- `CandidateController`, `ProblemDetailExceptionHandler`, `RequestContextFilter` in `api/`
+- `CandidateControllerV1`, `ProblemDetailExceptionHandler`, `RequestContextFilter` in `api/`
 
 **What does NOT get Lombok (kept explicit):**
 

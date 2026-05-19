@@ -14,7 +14,7 @@ import java.util.List;
 
 @Serdeable
 @Schema(description = "Request payload for registering a new candidate.")
-public record CandidateRegistrationRequest(
+public record CandidateRegistrationRequestDto(
     @NotBlank
         @Size(max = 80)
         @Schema(description = "Given name.", example = "Alice", maxLength = 80)

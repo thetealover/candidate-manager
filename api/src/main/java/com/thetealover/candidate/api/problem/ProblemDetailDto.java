@@ -9,14 +9,14 @@ import java.util.List;
 @Serdeable
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "RFC 7807 Problem Details response.")
-public record ProblemDetail(
+public record ProblemDetailDto(
     URI type,
     String title,
     int status,
     String detail,
     String instance,
     String correlationId,
-    List<FieldError> errors) {
+    List<FieldErrorDto> errors) {
 
   private static final String TYPE_BASE = "https://candidate-manager.thetealover.com/problems/";
 

@@ -209,7 +209,7 @@ point) and correctness still holds.
 **Decision:** No auth is in scope. `X-Actor-Id` is required on
 `PUT /eligibility` and `DELETE /candidates/{id}` and is recorded on every
 audit row. Defaulted to `system` on read endpoints; missing header on the
-write endpoints produces a 400 `ProblemDetail` with
+write endpoints produces a 400 `ProblemDetailDto` with
 `type=…/missing-header`.
 
 **Why:** The brief does not specify auth, but the audit-trail requirement
@@ -224,7 +224,7 @@ authentication. In this codebase it documents the integration seam.
 
 ---
 
-## D10 — RFC 7807 `ProblemDetail` + single central `ExceptionHandler`
+## D10 — RFC 7807 `ProblemDetailDto` + single central `ExceptionHandler`
 
 **Decision:** Every error response has the shape
 
@@ -392,7 +392,7 @@ Any other Lombok annotation (`@Data`, `@Value`, `@Builder`, `@Getter`,
 `lombok.*`.
 
 **Why:** Constructor boilerplate on services with three or more injected
-ports — `CandidateController` had 12 lines of pure field-then-assignment —
+ports — `CandidateControllerV1` had 12 lines of pure field-then-assignment —
 and the repeated `private static final Logger LOG = LoggerFactory.getLogger(…)`
 declaration paid no rent. Records cover DTOs, commands, and value objects
 but cannot replace `@Singleton + @Transactional + @ExecuteOn` services
@@ -638,7 +638,7 @@ Terraform reference module in D20 documents that deploy shape. A
 XFF when the request originates from a known proxy address.
 
 **429 response shape (D10 + standard rate-limit headers):** RFC 7807
-`ProblemDetail` body with `type=…/rate-limit-exceeded`, plus
+`ProblemDetailDto` body with `type=…/rate-limit-exceeded`, plus
 `Retry-After` (seconds) and `X-RateLimit-Limit` / `-Remaining`
 (always 0 on a 429) / `-Reset` (epoch seconds) headers. Successful
 responses do not carry the `X-RateLimit-*` triple — extra Bucket4j

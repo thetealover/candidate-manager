@@ -3211,11 +3211,11 @@ git commit -m "feat(application): add request-eligibility use case and async han
 ### Task 24: Request and response DTOs with bean validation
 
 **Files:**
-- Create: `api/src/main/java/com/thetealover/candidate/api/dto/CandidateRegistrationRequest.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/dto/CandidateRegistrationRequestDto.java`
 - Create: `api/src/main/java/com/thetealover/candidate/api/dto/EducationDto.java`
 - Create: `api/src/main/java/com/thetealover/candidate/api/dto/PriorExamPassDto.java`
-- Create: `api/src/main/java/com/thetealover/candidate/api/dto/CandidateResponse.java`
-- Create: `api/src/main/java/com/thetealover/candidate/api/dto/PageResponse.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/dto/CandidateDto.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/dto/PageResponseDto.java`
 
 - [ ] **Step 1: `EducationDto`**
 
@@ -3251,7 +3251,7 @@ public record PriorExamPassDto(
     @NotNull @PastOrPresent LocalDate passedOn) {}
 ```
 
-- [ ] **Step 3: `CandidateRegistrationRequest`**
+- [ ] **Step 3: `CandidateRegistrationRequestDto`**
 
 ```java
 package com.thetealover.candidate.api.dto;
@@ -3268,7 +3268,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Serdeable
-public record CandidateRegistrationRequest(
+public record CandidateRegistrationRequestDto(
     @NotBlank @Size(max = 80) String firstName,
     @NotBlank @Size(max = 80) String lastName,
     @NotBlank @Email @Size(max = 254) String email,
@@ -3278,7 +3278,7 @@ public record CandidateRegistrationRequest(
     @NotNull @Valid List<PriorExamPassDto> priorPasses) {}
 ```
 
-- [ ] **Step 4: `CandidateResponse`**
+- [ ] **Step 4: `CandidateDto`**
 
 ```java
 package com.thetealover.candidate.api.dto;
@@ -3293,7 +3293,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Serdeable
-public record CandidateResponse(
+public record CandidateDto(
     UUID id,
     String firstName,
     String lastName,
@@ -3306,8 +3306,8 @@ public record CandidateResponse(
     Instant registeredAt,
     Instant deletedAt) {
 
-  public static CandidateResponse from(final Candidate c) {
-    return new CandidateResponse(
+  public static CandidateDto from(final Candidate c) {
+    return new CandidateDto(
         c.id().value(),
         c.fullName().firstName(),
         c.fullName().lastName(),
@@ -3325,7 +3325,7 @@ public record CandidateResponse(
 }
 ```
 
-- [ ] **Step 5: `PageResponse`**
+- [ ] **Step 5: `PageResponseDto`**
 
 ```java
 package com.thetealover.candidate.api.dto;
@@ -3336,12 +3336,12 @@ import io.micronaut.serde.annotation.Serdeable;
 import java.util.List;
 
 @Serdeable
-public record PageResponse<T>(
+public record PageResponseDto<T>(
     List<T> content, int page, int size, long totalElements, int totalPages) {
 
-  public static PageResponse<CandidateResponse> ofCandidates(final Page<Candidate> page) {
-    return new PageResponse<>(
-        page.content().stream().map(CandidateResponse::from).toList(),
+  public static PageResponseDto<CandidateDto> ofCandidates(final Page<Candidate> page) {
+    return new PageResponseDto<>(
+        page.content().stream().map(CandidateDto::from).toList(),
         page.page(),
         page.size(),
         page.totalElements(),
@@ -3360,15 +3360,15 @@ git commit -m "feat(api): add request/response DTOs with Jakarta bean validation
 
 ---
 
-### Task 25: `ProblemDetail` and exception handlers (RFC 7807)
+### Task 25: `ProblemDetailDto` and exception handlers (RFC 7807)
 
 **Files:**
-- Create: `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetail.java`
-- Create: `api/src/main/java/com/thetealover/candidate/api/problem/FieldError.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetailDto.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/problem/FieldErrorDto.java`
 - Create: `api/src/main/java/com/thetealover/candidate/api/problem/MissingHeaderException.java`
 - Create: `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetailExceptionHandler.java`
 
-- [ ] **Step 1: `FieldError`**
+- [ ] **Step 1: `FieldErrorDto`**
 
 ```java
 package com.thetealover.candidate.api.problem;
@@ -3376,10 +3376,10 @@ package com.thetealover.candidate.api.problem;
 import io.micronaut.serde.annotation.Serdeable;
 
 @Serdeable
-public record FieldError(String field, String message) {}
+public record FieldErrorDto(String field, String message) {}
 ```
 
-- [ ] **Step 2: `ProblemDetail`**
+- [ ] **Step 2: `ProblemDetailDto`**
 
 ```java
 package com.thetealover.candidate.api.problem;
@@ -3391,14 +3391,14 @@ import java.util.List;
 
 @Serdeable
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record ProblemDetail(
+public record ProblemDetailDto(
     URI type,
     String title,
     int status,
     String detail,
     String instance,
     String correlationId,
-    List<FieldError> errors) {
+    List<FieldErrorDto> errors) {
 
   private static final String TYPE_BASE = "https://candidate-manager.thetealover.com/problems/";
 
@@ -3476,12 +3476,12 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           e.getMessage(),
           path,
           correlationId,
-          List.of(new FieldError(e.headerName(), "must not be missing")));
+          List.of(new FieldErrorDto(e.headerName(), "must not be missing")));
     }
     if (ex instanceof ConstraintViolationException e) {
-      final List<FieldError> errors =
+      final List<FieldErrorDto> errors =
           e.getConstraintViolations().stream()
-              .map(v -> new FieldError(v.getPropertyPath().toString(), v.getMessage()))
+              .map(v -> new FieldErrorDto(v.getPropertyPath().toString(), v.getMessage()))
               .toList();
       return body(400, "validation-failure", "Validation failed", "One or more fields are invalid.", path, correlationId, errors);
     }
@@ -3493,7 +3493,7 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           "Request body contains an unknown field.",
           path,
           correlationId,
-          List.of(new FieldError(e.getPropertyName(), "unknown field")));
+          List.of(new FieldErrorDto(e.getPropertyName(), "unknown field")));
     }
     if (ex instanceof IllegalArgumentException e) {
       return body(400, "validation-failure", "Validation failed", e.getMessage(), path, correlationId, null);
@@ -3509,18 +3509,18 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
     return body(500, "internal-error", "Internal error", "An unexpected error occurred.", path, correlationId, null);
   }
 
-  private MutableHttpResponse<ProblemDetail> body(
+  private MutableHttpResponse<ProblemDetailDto> body(
       final int status,
       final String slug,
       final String title,
       final String detail,
       final String instance,
       final String correlationId,
-      final List<FieldError> errors) {
-    final ProblemDetail pd =
-        new ProblemDetail(
-            ProblemDetail.typeFor(slug), title, status, detail, instance, correlationId, errors);
-    return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.valueOf(status))
+      final List<FieldErrorDto> errors) {
+    final ProblemDetailDto pd =
+        new ProblemDetailDto(
+            ProblemDetailDto.typeFor(slug), title, status, detail, instance, correlationId, errors);
+    return HttpResponse.<ProblemDetailDto>status(io.micronaut.http.HttpStatus.valueOf(status))
         .body(pd)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON);
   }
@@ -3532,7 +3532,7 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
 ```bash
 ./gradlew :api:build -x test
 git add api/src/main/java/com/thetealover/candidate/api/problem
-git commit -m "feat(api): add RFC 7807 ProblemDetail and central exception handler"
+git commit -m "feat(api): add RFC 7807 ProblemDetailDto and central exception handler"
 ```
 
 ---
@@ -3617,19 +3617,19 @@ git commit -m "feat(api): add request-context filter for correlation id, actor i
 
 ---
 
-### Task 27: `CandidateController`
+### Task 27: `CandidateControllerV1`
 
 **Files:**
-- Create: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+- Create: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`
 
 - [ ] **Step 1: Implement the controller**
 
 ```java
 package com.thetealover.candidate.api;
 
-import com.thetealover.candidate.api.dto.CandidateRegistrationRequest;
-import com.thetealover.candidate.api.dto.CandidateResponse;
-import com.thetealover.candidate.api.dto.PageResponse;
+import com.thetealover.candidate.api.dto.CandidateRegistrationRequestDto;
+import com.thetealover.candidate.api.dto.CandidateDto;
+import com.thetealover.candidate.api.dto.PageResponseDto;
 import com.thetealover.candidate.api.dto.PriorExamPassDto;
 import com.thetealover.candidate.api.problem.MissingHeaderException;
 import com.thetealover.candidate.application.GetCandidateUseCase;
@@ -3671,7 +3671,7 @@ import org.slf4j.MDC;
 @Controller("/api/v1/candidates")
 @Validated
 @ExecuteOn(TaskExecutors.BLOCKING)
-public class CandidateController {
+public class CandidateControllerV1 {
 
   private final RegisterCandidateUseCase register;
   private final GetCandidateUseCase get;
@@ -3679,7 +3679,7 @@ public class CandidateController {
   private final SoftDeleteCandidateUseCase softDelete;
   private final RequestEligibilityVerificationUseCase requestEligibility;
 
-  public CandidateController(
+  public CandidateControllerV1(
       final RegisterCandidateUseCase register,
       final GetCandidateUseCase get,
       final SearchCandidatesUseCase search,
@@ -3693,7 +3693,7 @@ public class CandidateController {
   }
 
   @Post(consumes = MediaType.APPLICATION_JSON, produces = MediaType.APPLICATION_JSON)
-  public HttpResponse<CandidateResponse> create(@Body @Valid final CandidateRegistrationRequest body) {
+  public HttpResponse<CandidateDto> create(@Body @Valid final CandidateRegistrationRequestDto body) {
     final RegisterCandidateCommand cmd =
         new RegisterCandidateCommand(
             new FullName(body.firstName(), body.lastName()),
@@ -3707,28 +3707,28 @@ public class CandidateController {
 
     final Candidate c = register.execute(cmd);
     return HttpResponse.created(URI.create("/api/v1/candidates/" + c.id().value()))
-        .body(CandidateResponse.from(c));
+        .body(CandidateDto.from(c));
   }
 
   @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
-  public CandidateResponse byId(@PathVariable final UUID id) {
+  public CandidateDto byId(@PathVariable final UUID id) {
     MDC.put("candidateId", id.toString());
     try {
-      return CandidateResponse.from(get.execute(CandidateId.of(id)));
+      return CandidateDto.from(get.execute(CandidateId.of(id)));
     } finally {
       MDC.remove("candidateId");
     }
   }
 
   @Get(produces = MediaType.APPLICATION_JSON)
-  public PageResponse<CandidateResponse> list(
+  public PageResponseDto<CandidateDto> list(
       @QueryValue(defaultValue = "") final String status,
       @QueryValue(defaultValue = "") final String program,
       @QueryValue(defaultValue = "0") final int page,
       @QueryValue(defaultValue = "20") final int size) {
     final EligibilityStatus statusFilter = status.isBlank() ? null : EligibilityStatus.valueOf(status);
     final ProgramLevel programFilter = program.isBlank() ? null : ProgramLevel.valueOf(program);
-    return PageResponse.ofCandidates(
+    return PageResponseDto.ofCandidates(
         search.execute(new SearchCriteria(statusFilter, programFilter), new Pageable(page, size)));
   }
 
@@ -3755,8 +3755,8 @@ public class CandidateController {
 
 ```bash
 ./gradlew :api:build -x test
-git add api/src/main/java/com/thetealover/candidate/api/CandidateController.java
-git commit -m "feat(api): add CandidateController with all five endpoints"
+git add api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
+git commit -m "feat(api): add CandidateControllerV1 with all five endpoints"
 ```
 
 ---
@@ -3766,13 +3766,13 @@ git commit -m "feat(api): add CandidateController with all five endpoints"
 The Micronaut OpenAPI annotation processor is already wired (`api/build.gradle`), and `Application.java` carries `@OpenAPIDefinition`. This task adds the per-endpoint and per-DTO annotations that turn the generated `swagger.yml` from a path-only skeleton into a useful contract document (documented statuses, schemas, examples) — satisfying NFR "API documentation via OpenAPI/Swagger annotations".
 
 **Files (all modify):**
-- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateRegistrationRequest.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateRegistrationRequestDto.java`
 - `api/src/main/java/com/thetealover/candidate/api/dto/EducationDto.java`
 - `api/src/main/java/com/thetealover/candidate/api/dto/PriorExamPassDto.java`
-- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateResponse.java`
-- `api/src/main/java/com/thetealover/candidate/api/dto/PageResponse.java`
-- `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetail.java`
-- `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/CandidateDto.java`
+- `api/src/main/java/com/thetealover/candidate/api/dto/PageResponseDto.java`
+- `api/src/main/java/com/thetealover/candidate/api/problem/ProblemDetailDto.java`
+- `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`
 
 - [ ] **Step 1: Annotate `EducationDto`**
 
@@ -3806,12 +3806,12 @@ public record PriorExamPassDto(
     LocalDate passedOn) {}
 ```
 
-- [ ] **Step 3: Annotate `CandidateRegistrationRequest`**
+- [ ] **Step 3: Annotate `CandidateRegistrationRequestDto`**
 
 ```java
 @Serdeable
 @Schema(description = "Request payload for registering a new candidate.")
-public record CandidateRegistrationRequest(
+public record CandidateRegistrationRequestDto(
     @NotBlank @Size(max = 80)
     @Schema(description = "Given name.", example = "Alice", maxLength = 80)
     String firstName,
@@ -3841,12 +3841,12 @@ public record CandidateRegistrationRequest(
     List<PriorExamPassDto> priorPasses) {}
 ```
 
-- [ ] **Step 4: Annotate `CandidateResponse`**
+- [ ] **Step 4: Annotate `CandidateDto`**
 
 ```java
 @Serdeable
 @Schema(description = "A candidate record.")
-public record CandidateResponse(
+public record CandidateDto(
     @Schema(description = "Server-generated candidate id.", example = "8e3b8f2a-...-...")
     UUID id,
 
@@ -3868,33 +3868,33 @@ public record CandidateResponse(
     @Schema(description = "When the candidate was soft-deleted; null on all returned candidates.")
     Instant deletedAt) {
 
-  public static CandidateResponse from(final Candidate c) { /* unchanged body */ }
+  public static CandidateDto from(final Candidate c) { /* unchanged body */ }
 }
 ```
 
 (Keep the existing `from(...)` body; only the annotations are new.)
 
-- [ ] **Step 5: Annotate `PageResponse`**
+- [ ] **Step 5: Annotate `PageResponseDto`**
 
 ```java
 @Serdeable
 @Schema(description = "Pagination envelope.")
-public record PageResponse<T>(
+public record PageResponseDto<T>(
     @Schema(description = "Page content.") List<T> content,
     @Schema(description = "Current page index (0-based).", example = "0") int page,
     @Schema(description = "Page size.", example = "20") int size,
     @Schema(description = "Total number of matching elements.", example = "137") long totalElements,
     @Schema(description = "Total number of pages.", example = "7") int totalPages) {
 
-  public static PageResponse<CandidateResponse> ofCandidates(final Page<Candidate> page) { /* unchanged */ }
+  public static PageResponseDto<CandidateDto> ofCandidates(final Page<Candidate> page) { /* unchanged */ }
 }
 ```
 
-- [ ] **Step 6: Annotate `ProblemDetail`**
+- [ ] **Step 6: Annotate `ProblemDetailDto`**
 
 Add `@Schema(description = "RFC 7807 Problem Details response.")` to the record itself. No need to annotate every field — Swagger UI surfaces the field names and types automatically; `description` on the type is enough for discoverability.
 
-- [ ] **Step 7: Annotate `CandidateController` methods**
+- [ ] **Step 7: Annotate `CandidateControllerV1` methods**
 
 Add to imports:
 
@@ -3905,7 +3905,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.thetealover.candidate.api.problem.ProblemDetail;
+import com.thetealover.candidate.api.problem.ProblemDetailDto;
 ```
 
 Decorate the class:
@@ -3915,7 +3915,7 @@ Decorate the class:
 @Controller("/api/v1/candidates")
 @Validated
 @ExecuteOn(TaskExecutors.BLOCKING)
-public class CandidateController { ... }
+public class CandidateControllerV1 { ... }
 ```
 
 Per method:
@@ -3929,33 +3929,33 @@ Per method:
 @ApiResponse(
     responseCode = "201",
     description = "Candidate created; Location header points at the new resource.",
-    content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+    content = @Content(schema = @Schema(implementation = CandidateDto.class)))
 @ApiResponse(
     responseCode = "400",
     description = "Validation failure (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(
     responseCode = "409",
     description = "Email already registered to an active candidate (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-public HttpResponse<CandidateResponse> create(...) { /* unchanged */ }
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
+public HttpResponse<CandidateDto> create(...) { /* unchanged */ }
 
 @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)
 @Operation(summary = "Get a candidate by id")
 @ApiResponse(
     responseCode = "200",
-    content = @Content(schema = @Schema(implementation = CandidateResponse.class)))
+    content = @Content(schema = @Schema(implementation = CandidateDto.class)))
 @ApiResponse(
     responseCode = "404",
     description = "Unknown id or soft-deleted candidate.",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-public CandidateResponse byId(
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
+public CandidateDto byId(
     @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id) { /* unchanged */ }
 
 @Get(produces = MediaType.APPLICATION_JSON)
 @Operation(summary = "Search active candidates with filtering and pagination")
 @ApiResponse(responseCode = "200", description = "A page of matching candidates.")
-public PageResponse<CandidateResponse> list(
+public PageResponseDto<CandidateDto> list(
     @Parameter(description = "Filter by eligibility status.")
     @QueryValue(defaultValue = "") final String status,
     @Parameter(description = "Filter by program level.")
@@ -3972,11 +3972,11 @@ public PageResponse<CandidateResponse> list(
         + "evaluation on a virtual-thread executor. Returns 202 immediately.")
 @ApiResponse(responseCode = "202", description = "Verification queued.")
 @ApiResponse(responseCode = "400", description = "Missing X-Actor-Id header (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(responseCode = "404", description = "Unknown id or soft-deleted (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(responseCode = "409", description = "Verification already in progress (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 public HttpResponse<Void> triggerEligibility(
     @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
     @Parameter(description = "Actor performing the action.", required = true, example = "user-123")
@@ -3986,11 +3986,11 @@ public HttpResponse<Void> triggerEligibility(
 @Operation(summary = "Soft-delete a candidate")
 @ApiResponse(responseCode = "204", description = "Soft-deleted.")
 @ApiResponse(responseCode = "400", description = "Missing X-Actor-Id header (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(responseCode = "404", description = "Unknown id (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 @ApiResponse(responseCode = "409", description = "Already deleted (RFC 7807).",
-    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    content = @Content(schema = @Schema(implementation = ProblemDetailDto.class)))
 public HttpResponse<Void> deleteOne(
     @Parameter(description = "Candidate id (UUID).") @PathVariable final UUID id,
     @Parameter(description = "Actor performing the action.", required = true, example = "user-123")
@@ -4179,7 +4179,7 @@ package com.thetealover.candidate.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.thetealover.candidate.api.dto.CandidateResponse;
+import com.thetealover.candidate.api.dto.CandidateDto;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
@@ -4232,14 +4232,14 @@ class CandidateRegistrationIT {
             "priorPasses", List.of());
 
     final var createResponse =
-        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
 
     assertThat(createResponse.status()).isEqualTo(HttpStatus.CREATED);
     final var location = createResponse.header(HttpHeaders.LOCATION);
     assertThat(location).startsWith("/api/v1/candidates/");
 
     final var fetched =
-        client.toBlocking().retrieve(HttpRequest.GET(location), CandidateResponse.class);
+        client.toBlocking().retrieve(HttpRequest.GET(location), CandidateDto.class);
     assertThat(fetched.firstName()).isEqualTo("Alice");
     assertThat(fetched.eligibilityStatus().name()).isEqualTo("NOT_VERIFIED");
   }
@@ -4272,7 +4272,7 @@ package com.thetealover.candidate.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.thetealover.candidate.api.dto.CandidateResponse;
+import com.thetealover.candidate.api.dto.CandidateDto;
 import com.thetealover.candidate.domain.candidate.EligibilityStatus;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
@@ -4327,7 +4327,7 @@ class EligibilityVerificationIT {
             "priorPasses", List.of());
 
     final var created =
-        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
     final var location = created.header(HttpHeaders.LOCATION);
 
     final var accepted =
@@ -4344,7 +4344,7 @@ class EligibilityVerificationIT {
         .untilAsserted(
             () -> {
               final var fetched =
-                  client.toBlocking().retrieve(HttpRequest.GET(location), CandidateResponse.class);
+                  client.toBlocking().retrieve(HttpRequest.GET(location), CandidateDto.class);
               assertThat(fetched.eligibilityStatus())
                   .isIn(EligibilityStatus.ELIGIBLE, EligibilityStatus.INELIGIBLE, EligibilityStatus.FAILED);
             });
@@ -4363,7 +4363,7 @@ class EligibilityVerificationIT {
             "programLevel", "LEVEL_I",
             "priorPasses", List.of());
     final var created =
-        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+        client.toBlocking().exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
     final var location = created.header(HttpHeaders.LOCATION);
 
     final var ex =
@@ -4812,7 +4812,7 @@ Time budget is the binding constraint.
 
 **Decision:** Lombok is permitted on bean/service classes in `application` / `infrastructure` / `api`, restricted to `@RequiredArgsConstructor` and `@Slf4j` (with `@Slf4j(topic = "…")` where a custom logger name is needed). Any other Lombok annotation (`@Data`, `@Value`, `@Builder`, `@Getter`, `@Setter`, `@AllArgsConstructor`, `@NoArgsConstructor`, `@EqualsAndHashCode`, `@ToString`) is forbidden. `domain/` stays Lombok-free.
 
-**Why:** Constructor boilerplate on services with 3+ injected ports (worst case `CandidateController` had 12 lines of pure assignment) and the repeated `private static final Logger LOG = LoggerFactory.getLogger(…)` declaration paid no rent. Records cover DTOs/commands/value objects but cannot replace `@Singleton`+`@Transactional`+`@ExecuteOn` services because Micronaut's compile-time AOP generates a subclass-proxy and records are `final`.
+**Why:** Constructor boilerplate on services with 3+ injected ports (worst case `CandidateControllerV1` had 12 lines of pure assignment) and the repeated `private static final Logger LOG = LoggerFactory.getLogger(…)` declaration paid no rent. Records cover DTOs/commands/value objects but cannot replace `@Singleton`+`@Transactional`+`@ExecuteOn` services because Micronaut's compile-time AOP generates a subclass-proxy and records are `final`.
 
 **Cost:** The Micronaut Gradle plugin emits "Detected use of Lombok, which is strongly discouraged" on every build. The plugin auto-orders the annotation processors (Lombok before the Micronaut Inject processor) so the AP-ordering gotcha is handled for us. Tests confirm Lombok + Micronaut compile-time DI + Hibernate + Testcontainers all cooperate.
 

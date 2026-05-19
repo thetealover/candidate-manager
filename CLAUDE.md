@@ -152,8 +152,8 @@ public class <Resource>Controller { … }
 ## Validation conventions
 
 - **Every DTO field carries a Jakarta Bean Validation constraint.** `@NotBlank`, `@Email`, `@Past`, `@NotNull`, `@Valid` for nested, `@Size`, `@Min/@Max`.
-- **Validation failures produce RFC 7807 responses.** Single `ProblemDetail` shape across the API, with an `errors[]` array listing each failed field.
-- **Required headers** (`X-Actor-Id` on `PUT /eligibility` and `DELETE`) are validated by the same server filter that handles correlation ids. Missing → 400 `ProblemDetail` with `type=…/missing-header`.
+- **Validation failures produce RFC 7807 responses.** Single `ProblemDetailDto` shape across the API, with an `errors[]` array listing each failed field.
+- **Required headers** (`X-Actor-Id` on `PUT /eligibility` and `DELETE`) are validated by the same server filter that handles correlation ids. Missing → 400 `ProblemDetailDto` with `type=…/missing-header`.
 - **Domain value objects validate in their own constructors** — not via Bean Validation annotations. This means an `Email` built from any source (HTTP, JPA mapper, test, future entry point) is always valid. Bean Validation is the friendly-error layer for HTTP; domain validation is the correctness layer for the JVM.
 - **Database constraints are the third layer** (partial unique index on email, NOT NULL, CHECK on `years_experience >= 0`, FKs). The DB is the source of truth for uniqueness and referential integrity; the app pre-check exists for friendlier 409s.
 

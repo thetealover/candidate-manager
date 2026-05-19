@@ -3,7 +3,7 @@ package com.thetealover.candidate.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.thetealover.candidate.api.dto.CandidateResponse;
+import com.thetealover.candidate.api.dto.CandidateDto;
 import com.thetealover.candidate.domain.candidate.EligibilityStatus;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpHeaders;
@@ -60,7 +60,7 @@ class EligibilityVerificationIT {
     final var created =
         client
             .toBlocking()
-            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
     final var location = created.header(HttpHeaders.LOCATION);
 
     final var accepted =
@@ -77,7 +77,7 @@ class EligibilityVerificationIT {
         .untilAsserted(
             () -> {
               final var fetched =
-                  client.toBlocking().retrieve(HttpRequest.GET(location), CandidateResponse.class);
+                  client.toBlocking().retrieve(HttpRequest.GET(location), CandidateDto.class);
               assertThat(fetched.eligibilityStatus())
                   .isIn(
                       EligibilityStatus.ELIGIBLE,
@@ -101,7 +101,7 @@ class EligibilityVerificationIT {
     final var created =
         client
             .toBlocking()
-            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateResponse.class);
+            .exchange(HttpRequest.POST("/api/v1/candidates", body), CandidateDto.class);
     final var location = created.header(HttpHeaders.LOCATION);
 
     final var ex =

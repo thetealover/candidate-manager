@@ -49,7 +49,7 @@ Lombok (`@RequiredArgsConstructor` only).
 - `application/src/test/java/com/thetealover/candidate/application/CandidateUseCasesTest.java` (deleted in Task 7 after its scenarios are lifted)
 
 **Modified**
-- `api/src/main/java/com/thetealover/candidate/api/CandidateController.java` (imports + 4 call sites)
+- `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java` (imports + 4 call sites)
 - `.claude/skills/adding-a-use-case/SKILL.md` (layout + universal Command rule)
 
 ---
@@ -146,7 +146,7 @@ This use case already takes a Command, so no signature change. The controller im
 - Delete: `application/src/main/java/com/thetealover/candidate/application/RegisterCandidateUseCase.java`
 - Delete: `application/src/main/java/com/thetealover/candidate/application/RegisterCandidateCommand.java`
 - Delete: `application/src/test/java/com/thetealover/candidate/application/RegisterCandidateUseCaseTest.java`
-- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java` (two import lines)
+- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java` (two import lines)
 
 - [ ] **Step 1: Create the new use case file**
 
@@ -285,7 +285,7 @@ class RegisterCandidateUseCaseTest {
 
 - [ ] **Step 4: Update controller imports**
 
-In `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`, change these two existing import lines:
+In `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`, change these two existing import lines:
 
 Old (currently lines 10–11):
 ```java
@@ -322,7 +322,7 @@ Expected: `BUILD SUCCESSFUL`.
 ```bash
 git add application/src/main/java/com/thetealover/candidate/application/candidate/register \
         application/src/test/java/com/thetealover/candidate/application/candidate/register \
-        api/src/main/java/com/thetealover/candidate/api/CandidateController.java
+        api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
 git commit -m "$(cat <<'EOF'
 refactor(application): move RegisterCandidate into candidate/register/
 
@@ -342,7 +342,7 @@ EOF
 - Create: `application/src/main/java/com/thetealover/candidate/application/candidate/get/GetCandidateUseCase.java`
 - Create: `application/src/test/java/com/thetealover/candidate/application/candidate/get/GetCandidateUseCaseTest.java`
 - Delete: `application/src/main/java/com/thetealover/candidate/application/GetCandidateUseCase.java`
-- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java` (import + one call site)
+- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java` (import + one call site)
 
 - [ ] **Step 1: Create the new Command**
 
@@ -457,7 +457,7 @@ class GetCandidateUseCaseTest {
 
 - [ ] **Step 4: Update controller import**
 
-In `CandidateController.java`, change the existing import:
+In `CandidateControllerV1.java`, change the existing import:
 
 Old:
 ```java
@@ -472,16 +472,16 @@ import com.thetealover.candidate.application.candidate.get.GetCandidateUseCase;
 
 - [ ] **Step 5: Update controller call site**
 
-Inside `CandidateController.byId(...)`, change the `get.execute(...)` call:
+Inside `CandidateControllerV1.byId(...)`, change the `get.execute(...)` call:
 
 Old (currently line 117):
 ```java
-      return CandidateResponse.from(get.execute(CandidateId.of(id)));
+      return CandidateDto.from(get.execute(CandidateId.of(id)));
 ```
 
 New:
 ```java
-      return CandidateResponse.from(get.execute(new GetCandidateCommand(CandidateId.of(id))));
+      return CandidateDto.from(get.execute(new GetCandidateCommand(CandidateId.of(id))));
 ```
 
 - [ ] **Step 6: Delete the old file**
@@ -503,7 +503,7 @@ Expected: `BUILD SUCCESSFUL`. Note: `CandidateUseCasesTest` still exists and sti
 ```bash
 git add application/src/main/java/com/thetealover/candidate/application/candidate/get \
         application/src/test/java/com/thetealover/candidate/application/candidate/get \
-        api/src/main/java/com/thetealover/candidate/api/CandidateController.java
+        api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
 git commit -m "$(cat <<'EOF'
 refactor(application): introduce GetCandidateCommand under candidate/get/
 
@@ -524,7 +524,7 @@ EOF
 - Create: `application/src/main/java/com/thetealover/candidate/application/candidate/search/SearchCandidatesUseCase.java`
 - Create: `application/src/test/java/com/thetealover/candidate/application/candidate/search/SearchCandidatesUseCaseTest.java`
 - Delete: `application/src/main/java/com/thetealover/candidate/application/SearchCandidatesUseCase.java`
-- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`
 
 - [ ] **Step 1: Create the Command**
 
@@ -620,17 +620,17 @@ import com.thetealover.candidate.application.candidate.search.SearchCandidatesUs
 
 - [ ] **Step 5: Update controller call site**
 
-Inside `CandidateController.list(...)`, change the `search.execute(...)` call:
+Inside `CandidateControllerV1.list(...)`, change the `search.execute(...)` call:
 
 Old (currently lines 140–141):
 ```java
-    return PageResponse.ofCandidates(
+    return PageResponseDto.ofCandidates(
         search.execute(new SearchCriteria(statusFilter, programFilter), new Pageable(page, size)));
 ```
 
 New:
 ```java
-    return PageResponse.ofCandidates(
+    return PageResponseDto.ofCandidates(
         search.execute(
             new SearchCandidatesCommand(
                 new SearchCriteria(statusFilter, programFilter), new Pageable(page, size))));
@@ -655,7 +655,7 @@ Expected: `BUILD SUCCESSFUL`.
 ```bash
 git add application/src/main/java/com/thetealover/candidate/application/candidate/search \
         application/src/test/java/com/thetealover/candidate/application/candidate/search \
-        api/src/main/java/com/thetealover/candidate/api/CandidateController.java
+        api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
 git commit -m "$(cat <<'EOF'
 refactor(application): introduce SearchCandidatesCommand under candidate/search/
 
@@ -676,7 +676,7 @@ EOF
 - Create: `application/src/test/java/com/thetealover/candidate/application/candidate/softdelete/SoftDeleteCandidateUseCaseTest.java`
 - Delete: `application/src/main/java/com/thetealover/candidate/application/SoftDeleteCandidateUseCase.java`
 - Delete: `application/src/test/java/com/thetealover/candidate/application/CandidateUseCasesTest.java`
-- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`
 
 - [ ] **Step 1: Create the Command**
 
@@ -799,7 +799,7 @@ import com.thetealover.candidate.application.candidate.softdelete.SoftDeleteCand
 
 - [ ] **Step 5: Update controller call site**
 
-Inside `CandidateController.deleteOne(...)`, change the `softDelete.execute(...)` call:
+Inside `CandidateControllerV1.deleteOne(...)`, change the `softDelete.execute(...)` call:
 
 Old (currently line 210):
 ```java
@@ -831,7 +831,7 @@ Expected: `BUILD SUCCESSFUL`. With the lumped file gone, the same scenarios now 
 ```bash
 git add application/src/main/java/com/thetealover/candidate/application/candidate/softdelete \
         application/src/test/java/com/thetealover/candidate/application/candidate/softdelete \
-        api/src/main/java/com/thetealover/candidate/api/CandidateController.java
+        api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
 git commit -m "$(cat <<'EOF'
 refactor(application): introduce SoftDeleteCandidateCommand and retire lumped test
 
@@ -853,7 +853,7 @@ EOF
 - Create: `application/src/test/java/com/thetealover/candidate/application/eligibility/request/RequestEligibilityVerificationUseCaseTest.java`
 - Delete: `application/src/main/java/com/thetealover/candidate/application/RequestEligibilityVerificationUseCase.java`
 - Delete: `application/src/test/java/com/thetealover/candidate/application/RequestEligibilityVerificationUseCaseTest.java`
-- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateController.java`
+- Modify: `api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java`
 
 - [ ] **Step 1: Create the Command**
 
@@ -997,7 +997,7 @@ import com.thetealover.candidate.application.eligibility.request.RequestEligibil
 
 - [ ] **Step 5: Update controller call site**
 
-Inside `CandidateController.triggerEligibility(...)`, change the `requestEligibility.execute(...)` call:
+Inside `CandidateControllerV1.triggerEligibility(...)`, change the `requestEligibility.execute(...)` call:
 
 Old (currently line 182):
 ```java
@@ -1030,7 +1030,7 @@ Expected: `BUILD SUCCESSFUL`.
 ```bash
 git add application/src/main/java/com/thetealover/candidate/application/eligibility/request \
         application/src/test/java/com/thetealover/candidate/application/eligibility/request \
-        api/src/main/java/com/thetealover/candidate/api/CandidateController.java
+        api/src/main/java/com/thetealover/candidate/api/CandidateControllerV1.java
 git commit -m "$(cat <<'EOF'
 refactor(application): introduce RequestEligibilityVerificationCommand
 
