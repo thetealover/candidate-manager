@@ -18,7 +18,7 @@ Not for: REST controllers (api module), JPA adapters (infrastructure module).
 1. **Define the input shape**, if needed.
    - For a write operation, create an immutable `…Command` record alongside the use case (`RegisterCandidateCommand`, `RequestEligibilityCommand`).
    - For a read operation, take primitive parameters or a domain id directly.
-2. **Create the class** with `@Singleton` (from `jakarta.inject`, not `io.micronaut.*`) and `@RequiredArgsConstructor` (from `lombok`).
+2. **Create the class** with `@Singleton` (from `jakarta.inject`, not `io.micronaut.*`) and `@RequiredArgsConstructor` (from `lombok`). If the class logs, add `@Slf4j` (from `lombok.extern.slf4j`) and call `log.info(...)` etc. — no hand-rolled `Logger LOG` field.
 3. **Declare ports as `private final` fields.** Lombok generates the all-args constructor at compile time. No field injection, no static lookup, no hand-written constructor.
 4. **Mark the entry method `@Transactional`** (`jakarta.transaction.Transactional`) for any method that writes through `CandidateRepository` or `EligibilityAuditRepository`. Read-only `get`/`search` methods don't need it.
 5. **Throw domain-meaningful exceptions** on business failures (`EmailAlreadyRegisteredException`, `CandidateNotFoundException`). Don't catch port-layer exceptions to wrap them.
