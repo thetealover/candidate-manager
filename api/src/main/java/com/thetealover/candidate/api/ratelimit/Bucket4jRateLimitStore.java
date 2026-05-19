@@ -41,9 +41,10 @@ public class Bucket4jRateLimitStore implements RateLimitStore {
   public RateLimitDecision tryConsume(final String key, final RateLimit limit) {
     final Bucket bucket = buckets.get(key, ignored -> buildBucket(limit));
     final ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
-    final Instant resetAt =
-        Instant.ofEpochSecond(0L, timeMeter.currentTimeNanos())
-            .plusNanos(probe.getNanosToWaitForReset());
+    // resetAt is a wall-clock Instant for the client. TimeMeter.SYSTEM_NANOTIME returns
+    // System.nanoTime() which is NOT epoch-relative, so it would produce nonsense if used
+    // here. Bucket4j's nanos-to-wait is a relative duration, which we add to Instant.now().
+    final Instant resetAt = Instant.now().plusNanos(probe.getNanosToWaitForReset());
     return new RateLimitDecision(probe.isConsumed(), probe.getRemainingTokens(), resetAt, limit);
   }
 

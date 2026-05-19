@@ -27,6 +27,13 @@ public class RequestContextFilter implements HttpServerFilter {
   private static final String CORRELATION_HEADER = "X-Correlation-Id";
   private static final String ACTOR_HEADER = "X-Actor-Id";
 
+  /**
+   * Request attribute key for the resolved correlationId. Stashed here so downstream code
+   * (exception handlers in particular) can read it without depending on MDC, which doesn't
+   * propagate across the Netty IO → blocking executor thread switch.
+   */
+  public static final CharSequence CORRELATION_ID_ATTR = "correlationId";
+
   @Override
   public Publisher<MutableHttpResponse<?>> doFilter(
       final HttpRequest<?> request, final ServerFilterChain chain) {
@@ -38,6 +45,7 @@ public class RequestContextFilter implements HttpServerFilter {
             : UUID.randomUUID().toString();
     final String actorId = request.getHeaders().get(ACTOR_HEADER);
 
+    request.setAttribute(CORRELATION_ID_ATTR, correlationId);
     MDC.put("correlationId", correlationId);
     if (actorId != null) MDC.put("actorId", actorId);
 
