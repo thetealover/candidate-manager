@@ -10,10 +10,10 @@ class CandidateIdTest {
 
   @Test
   void generate_returns_a_random_uuid() {
-    final CandidateId a = CandidateId.generate();
-    final CandidateId b = CandidateId.generate();
-    assertThat(a).isNotEqualTo(b);
-    assertThat(a.value()).isNotNull();
+    final CandidateId first = CandidateId.generate();
+    final CandidateId second = CandidateId.generate();
+    assertThat(first).isNotEqualTo(second);
+    assertThat(first.value()).isNotNull();
   }
 
   @Test

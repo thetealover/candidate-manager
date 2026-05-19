@@ -7,14 +7,14 @@ public final class EligibilityAuditMapper {
 
   private EligibilityAuditMapper() {}
 
-  public static EligibilityAuditJpaEntity toJpa(final EligibilityAuditEntry e) {
+  public static EligibilityAuditJpaEntity toJpa(final EligibilityAuditEntry entry) {
     return new EligibilityAuditJpaEntity(
-        e.id(),
-        e.candidateId().value(),
-        e.decidedAt(),
-        e.outcome(),
-        e.reason(),
-        e.actorId(),
-        e.correlationId());
+        entry.id(),
+        entry.candidateId().value(),
+        entry.decidedAt(),
+        entry.outcome(),
+        entry.reason(),
+        entry.actorId(),
+        entry.correlationId());
   }
 }

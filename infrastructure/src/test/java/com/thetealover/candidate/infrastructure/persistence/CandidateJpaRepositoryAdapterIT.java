@@ -9,12 +9,13 @@ import com.thetealover.candidate.domain.candidate.Email;
 import com.thetealover.candidate.domain.candidate.FullName;
 import com.thetealover.candidate.domain.candidate.HighestDegree;
 import com.thetealover.candidate.domain.candidate.ProgramLevel;
-import com.thetealover.candidate.domain.port.FixedClock;
+import com.thetealover.candidate.domain.port.Clock;
 import com.thetealover.candidate.domain.port.Pageable;
 import com.thetealover.candidate.domain.port.SearchCriteria;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import jakarta.inject.Inject;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -41,13 +42,13 @@ class CandidateJpaRepositoryAdapterIT {
     System.setProperty("TC_PASS", POSTGRES.getPassword());
   }
 
-  private static final FixedClock CLOCK = FixedClock.at("2026-05-18T10:00:00Z");
+  private static final Clock CLOCK = () -> Instant.parse("2026-05-18T10:00:00Z");
 
   @Inject CandidateJpaRepositoryAdapter adapter;
 
   @Test
   void save_then_find_round_trips_the_aggregate() {
-    final Candidate c =
+    final Candidate candidate =
         Candidate.register(
             new FullName("Roundtrip", "Tester"),
             new Email("rt+%s@example.com".formatted(java.util.UUID.randomUUID())),
@@ -57,17 +58,17 @@ class CandidateJpaRepositoryAdapterIT {
             List.of(),
             CLOCK);
 
-    adapter.save(c);
-    final var fetched = adapter.findActiveById(c.id());
+    adapter.save(candidate);
+    final var fetched = adapter.findActiveById(candidate.id());
     assertThat(fetched).isPresent();
-    assertThat(fetched.get().email().value()).isEqualTo(c.email().value());
+    assertThat(fetched.get().email().value()).isEqualTo(candidate.email().value());
   }
 
   @Test
   void exists_active_by_email_ignores_soft_deleted_rows() {
     final Email email = new Email("dup+%s@example.com".formatted(java.util.UUID.randomUUID()));
 
-    final Candidate c =
+    final Candidate candidate =
         Candidate.register(
             new FullName("Soft", "Deleted"),
             email,
@@ -77,11 +78,11 @@ class CandidateJpaRepositoryAdapterIT {
             List.of(),
             CLOCK);
 
-    adapter.save(c);
+    adapter.save(candidate);
     assertThat(adapter.existsActiveByEmail(email)).isTrue();
 
-    c.softDelete();
-    adapter.save(c);
+    candidate.softDelete();
+    adapter.save(candidate);
     assertThat(adapter.existsActiveByEmail(email)).isFalse();
   }
 

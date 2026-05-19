@@ -94,7 +94,7 @@ public class CandidateController {
       content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
   public HttpResponse<CandidateResponse> create(
       @Body @Valid final CandidateRegistrationRequest body) {
-    final RegisterCandidateCommand cmd =
+    final RegisterCandidateCommand command =
         new RegisterCandidateCommand(
             new FullName(body.firstName(), body.lastName()),
             new Email(body.email()),
@@ -103,12 +103,13 @@ public class CandidateController {
                 body.education().highestDegree(), body.education().yearsExperience()),
             body.programLevel(),
             body.priorPasses().stream()
-                .map((PriorExamPassDto p) -> new PriorExamPass(p.level(), p.passedOn()))
+                .map((PriorExamPassDto pass) -> new PriorExamPass(pass.level(), pass.passedOn()))
                 .toList());
 
-    final Candidate c = register.execute(cmd);
-    return HttpResponse.created(URI.create("/api/v1/candidates/%s".formatted(c.id().value())))
-        .body(CandidateResponse.from(c));
+    final Candidate candidate = register.execute(command);
+    return HttpResponse.created(
+            URI.create("/api/v1/candidates/%s".formatted(candidate.id().value())))
+        .body(CandidateResponse.from(candidate));
   }
 
   @Get(value = "/{id}", produces = MediaType.APPLICATION_JSON)

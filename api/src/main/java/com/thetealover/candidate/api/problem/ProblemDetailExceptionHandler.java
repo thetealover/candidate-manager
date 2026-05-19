@@ -30,41 +30,44 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
     final String path = request.getPath();
     final String correlationId = MDC.get("correlationId");
 
-    if (ex instanceof CandidateNotFoundException e) {
+    if (ex instanceof CandidateNotFoundException notFound) {
       return body(
           404,
           "candidate-not-found",
           "Candidate not found",
-          e.getMessage(),
+          notFound.getMessage(),
           path,
           correlationId,
           null);
     }
-    if (ex instanceof EmailAlreadyRegisteredException e) {
-      LOG.warn("email conflict on registration: {}", e.email().value());
+    if (ex instanceof EmailAlreadyRegisteredException emailConflict) {
+      LOG.warn("email conflict on registration: {}", emailConflict.email().value());
       return body(
           409,
           "email-already-registered",
           "Email already registered",
-          e.getMessage(),
+          emailConflict.getMessage(),
           path,
           correlationId,
           null);
     }
-    if (ex instanceof MissingHeaderException e) {
+    if (ex instanceof MissingHeaderException missingHeader) {
       return body(
           400,
           "missing-header",
           "Required header missing",
-          e.getMessage(),
+          missingHeader.getMessage(),
           path,
           correlationId,
-          List.of(new FieldError(e.headerName(), "must not be missing")));
+          List.of(new FieldError(missingHeader.headerName(), "must not be missing")));
     }
-    if (ex instanceof ConstraintViolationException e) {
+    if (ex instanceof ConstraintViolationException constraintViolation) {
       final List<FieldError> errors =
-          e.getConstraintViolations().stream()
-              .map(v -> new FieldError(v.getPropertyPath().toString(), v.getMessage()))
+          constraintViolation.getConstraintViolations().stream()
+              .map(
+                  violation ->
+                      new FieldError(
+                          violation.getPropertyPath().toString(), violation.getMessage()))
               .toList();
       return body(
           400,
@@ -90,32 +93,32 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
           correlationId,
           List.of(new FieldError(field, "unknown field")));
     }
-    if (ex instanceof IllegalArgumentException e) {
+    if (ex instanceof IllegalArgumentException illegalArgument) {
       return body(
           400,
           "validation-failure",
           "Validation failed",
-          e.getMessage(),
+          illegalArgument.getMessage(),
           path,
           correlationId,
           null);
     }
-    if (ex instanceof IllegalStateException e) {
+    if (ex instanceof IllegalStateException illegalState) {
       return body(
           409,
           "invalid-state-transition",
           "Invalid state transition",
-          e.getMessage(),
+          illegalState.getMessage(),
           path,
           correlationId,
           null);
     }
-    if (ex instanceof HttpStatusException e) {
+    if (ex instanceof HttpStatusException httpStatus) {
       return body(
-          e.getStatus().getCode(),
+          httpStatus.getStatus().getCode(),
           "internal-error",
-          e.getStatus().getReason(),
-          e.getMessage(),
+          httpStatus.getStatus().getReason(),
+          httpStatus.getMessage(),
           path,
           correlationId,
           null);
@@ -140,11 +143,11 @@ public class ProblemDetailExceptionHandler implements ExceptionHandler<Throwable
       final String instance,
       final String correlationId,
       final List<FieldError> errors) {
-    final ProblemDetail pd =
+    final ProblemDetail problemDetail =
         new ProblemDetail(
             ProblemDetail.typeFor(slug), title, status, detail, instance, correlationId, errors);
     return HttpResponse.<ProblemDetail>status(io.micronaut.http.HttpStatus.valueOf(status))
-        .body(pd)
+        .body(problemDetail)
         .contentType(MediaType.APPLICATION_JSON_PROBLEM);
   }
 }

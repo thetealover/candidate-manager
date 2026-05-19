@@ -9,8 +9,8 @@ class PageableTest {
 
   @Test
   void valid_pageable_computes_offset() {
-    final Pageable p = new Pageable(2, 10);
-    assertThat(p.offset()).isEqualTo(20);
+    final Pageable pageable = new Pageable(2, 10);
+    assertThat(pageable.offset()).isEqualTo(20);
   }
 
   @Test

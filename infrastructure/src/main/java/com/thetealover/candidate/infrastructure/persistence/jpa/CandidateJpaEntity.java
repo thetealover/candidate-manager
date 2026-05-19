@@ -141,15 +141,15 @@ public class CandidateJpaEntity {
     return priorPasses;
   }
 
-  public void setEligibilityStatus(final EligibilityStatus s) {
-    this.eligibilityStatus = s;
+  public void setEligibilityStatus(final EligibilityStatus eligibilityStatus) {
+    this.eligibilityStatus = eligibilityStatus;
   }
 
-  public void setDeletedAt(final Instant t) {
-    this.deletedAt = t;
+  public void setDeletedAt(final Instant deletedAt) {
+    this.deletedAt = deletedAt;
   }
 
-  public void setPriorPasses(final List<CandidatePriorPassJpaEntity> p) {
-    this.priorPasses = p;
+  public void setPriorPasses(final List<CandidatePriorPassJpaEntity> priorPasses) {
+    this.priorPasses = priorPasses;
   }
 }

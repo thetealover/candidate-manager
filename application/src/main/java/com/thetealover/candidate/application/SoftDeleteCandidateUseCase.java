@@ -18,9 +18,9 @@ public class SoftDeleteCandidateUseCase {
 
   @Transactional
   public void execute(final CandidateId id) {
-    final Candidate c =
+    final Candidate candidate =
         repository.findActiveById(id).orElseThrow(() -> new CandidateNotFoundException(id));
-    c.softDelete();
-    repository.save(c);
+    candidate.softDelete();
+    repository.save(candidate);
   }
 }

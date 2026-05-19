@@ -17,45 +17,46 @@ public final class CandidateMapper {
 
   private CandidateMapper() {}
 
-  public static CandidateJpaEntity toJpa(final Candidate c) {
+  public static CandidateJpaEntity toJpa(final Candidate candidate) {
     final CandidateJpaEntity entity =
         new CandidateJpaEntity(
-            c.id().value(),
-            c.fullName().firstName(),
-            c.fullName().lastName(),
-            c.email().value(),
-            c.dateOfBirth().value(),
-            c.educationBackground().highestDegree(),
-            c.educationBackground().yearsExperience(),
-            c.programLevel(),
-            c.eligibilityStatus(),
-            c.registeredAt(),
-            c.deletedAt());
+            candidate.id().value(),
+            candidate.fullName().firstName(),
+            candidate.fullName().lastName(),
+            candidate.email().value(),
+            candidate.dateOfBirth().value(),
+            candidate.educationBackground().highestDegree(),
+            candidate.educationBackground().yearsExperience(),
+            candidate.programLevel(),
+            candidate.eligibilityStatus(),
+            candidate.registeredAt(),
+            candidate.deletedAt());
 
     final List<CandidatePriorPassJpaEntity> passes = new ArrayList<>();
-    for (final PriorExamPass p : c.priorPasses()) {
+    for (final PriorExamPass pass : candidate.priorPasses()) {
       passes.add(
-          new CandidatePriorPassJpaEntity(UUID.randomUUID(), entity, p.level(), p.passedOn()));
+          new CandidatePriorPassJpaEntity(
+              UUID.randomUUID(), entity, pass.level(), pass.passedOn()));
     }
     entity.setPriorPasses(passes);
     return entity;
   }
 
-  public static Candidate toDomain(final CandidateJpaEntity e) {
+  public static Candidate toDomain(final CandidateJpaEntity entity) {
     final List<PriorExamPass> passes = new ArrayList<>();
-    for (final CandidatePriorPassJpaEntity p : e.getPriorPasses()) {
-      passes.add(new PriorExamPass(p.getProgramLevel(), p.getPassedOn()));
+    for (final CandidatePriorPassJpaEntity passEntity : entity.getPriorPasses()) {
+      passes.add(new PriorExamPass(passEntity.getProgramLevel(), passEntity.getPassedOn()));
     }
     return Candidate.rehydrate(
-        CandidateId.of(e.getId()),
-        new FullName(e.getFirstName(), e.getLastName()),
-        new Email(e.getEmail()),
-        new DateOfBirth(e.getDateOfBirth()),
-        new EducationBackground(e.getHighestDegree(), e.getYearsExperience()),
-        e.getProgramLevel(),
+        CandidateId.of(entity.getId()),
+        new FullName(entity.getFirstName(), entity.getLastName()),
+        new Email(entity.getEmail()),
+        new DateOfBirth(entity.getDateOfBirth()),
+        new EducationBackground(entity.getHighestDegree(), entity.getYearsExperience()),
+        entity.getProgramLevel(),
         passes,
-        e.getRegisteredAt(),
-        e.getEligibilityStatus(),
-        e.getDeletedAt());
+        entity.getRegisteredAt(),
+        entity.getEligibilityStatus(),
+        entity.getDeletedAt());
   }
 }

@@ -70,7 +70,7 @@ public class EvaluateEligibilityHandler {
       MDC.put("correlationId", event.correlationId().toString());
       MDC.put("actorId", event.actorId());
       try {
-        final Candidate c =
+        final Candidate candidate =
             repository
                 .findActiveById(event.candidateId())
                 .orElseThrow(
@@ -79,24 +79,24 @@ public class EvaluateEligibilityHandler {
                             "candidate vanished during async evaluation: %s"
                                 .formatted(event.candidateId())));
 
-        RuleEvaluation result;
+        RuleEvaluation evaluation;
         try {
-          result = rules.evaluate(c);
+          evaluation = rules.evaluate(candidate);
         } catch (final RuntimeException ex) {
           LOG.error("eligibility evaluation threw; recording FAILED", ex);
-          result =
+          evaluation =
               new RuleEvaluation(
                   EligibilityOutcome.FAILED, "Evaluation failed: %s".formatted(ex.getMessage()));
         }
 
-        c.applyDecision(result.outcome());
-        repository.save(c);
+        candidate.applyDecision(evaluation.outcome());
+        repository.save(candidate);
 
         publisher.publish(
             new EligibilityDecidedEvent(
-                c.id(),
-                result.outcome(),
-                result.reason(),
+                candidate.id(),
+                evaluation.outcome(),
+                evaluation.reason(),
                 clock.instant(),
                 event.correlationId(),
                 event.actorId()));

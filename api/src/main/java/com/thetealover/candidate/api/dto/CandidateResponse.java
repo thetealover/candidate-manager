@@ -30,19 +30,22 @@ public record CandidateResponse(
     @Schema(description = "When the candidate was soft-deleted; null on all returned candidates.")
         Instant deletedAt) {
 
-  public static CandidateResponse from(final Candidate c) {
+  public static CandidateResponse from(final Candidate candidate) {
     return new CandidateResponse(
-        c.id().value(),
-        c.fullName().firstName(),
-        c.fullName().lastName(),
-        c.email().value(),
-        c.dateOfBirth().value(),
+        candidate.id().value(),
+        candidate.fullName().firstName(),
+        candidate.fullName().lastName(),
+        candidate.email().value(),
+        candidate.dateOfBirth().value(),
         new EducationDto(
-            c.educationBackground().highestDegree(), c.educationBackground().yearsExperience()),
-        c.programLevel(),
-        c.priorPasses().stream().map(p -> new PriorExamPassDto(p.level(), p.passedOn())).toList(),
-        c.eligibilityStatus(),
-        c.registeredAt(),
-        c.deletedAt());
+            candidate.educationBackground().highestDegree(),
+            candidate.educationBackground().yearsExperience()),
+        candidate.programLevel(),
+        candidate.priorPasses().stream()
+            .map(pass -> new PriorExamPassDto(pass.level(), pass.passedOn()))
+            .toList(),
+        candidate.eligibilityStatus(),
+        candidate.registeredAt(),
+        candidate.deletedAt());
   }
 }
