@@ -18,7 +18,7 @@ testcontainers = "1.21.0"
 awaitility     = "4.2.2"
 
 # Boilerplate reduction
-lombok = "1.18.34"
+lombok = "1.18.46"
 
 bucket4j = "8.14.0"
 caffeine = "3.1.8"
